@@ -1,6 +1,15 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { weapi, linuxapi, eapi } from './crypto.js';
 import { getAuthManager } from '../auth/manager.js';
+import * as fs from 'fs';
+import * as http from 'http';
+import * as https from 'https';
+import { pipeline } from 'stream/promises';
+import type { Readable } from 'stream';
+
+// 强制 IPv4，避免 IPv6 触发 CDN 防盗链
+const httpAgent = new http.Agent({ family: 4 });
+const httpsAgent = new https.Agent({ family: 4 });
 
 const BASE_URL = 'https://music.163.com';
 const USER_AGENT =
@@ -25,6 +34,7 @@ export class ApiClient {
         'Content-Type': 'application/x-www-form-urlencoded',
         Referer: 'https://music.163.com',
         Origin: 'https://music.163.com',
+        'X-Real-IP': '118.88.88.88',
       },
     });
   }
@@ -113,6 +123,52 @@ export class ApiClient {
       }
       throw error;
     }
+  }
+
+  async download(url: string, destPath: string): Promise<void> {
+    // CDN 防盗链: 部分节点(m704/m804)会 403，使用备用节点(m801)重试
+    const CDN_FALLBACKS = ['m801', 'm701'];
+
+    const tryDownload = async (dlUrl: string): Promise<Readable> => {
+      const response = await axios.get<Readable>(dlUrl, {
+        responseType: 'stream',
+        timeout: 120000,
+        httpAgent,
+        httpsAgent,
+        headers: {
+          'User-Agent': USER_AGENT,
+          Referer: 'https://music.163.com/',
+        },
+      });
+      return response.data;
+    };
+
+    let lastError: Error | null = null;
+
+    // 先尝试原始 URL
+    try {
+      const stream = await tryDownload(url);
+      await pipeline(stream, fs.createWriteStream(destPath));
+      return;
+    } catch (e) {
+      const isAntiHotlink = e instanceof AxiosError && e.response?.status === 403;
+      if (!isAntiHotlink) throw e;
+      lastError = e as Error;
+    }
+
+    // 403 时切换 CDN 节点重试
+    for (const fallback of CDN_FALLBACKS) {
+      const altUrl = url.replace(/m\d+\.music\.126\.net/, `${fallback}.music.126.net`);
+      try {
+        const stream = await tryDownload(altUrl);
+        await pipeline(stream, fs.createWriteStream(destPath));
+        return;
+      } catch (e) {
+        lastError = e as Error;
+      }
+    }
+
+    throw lastError || new Error('下载失败');
   }
 }
 

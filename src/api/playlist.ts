@@ -13,9 +13,12 @@ interface NeteasePlaylistResponse {
     tracks?: {
       id: number;
       name: string;
-      ar: { id: number; name: string }[];
-      al: { id: number; name: string; picUrl?: string };
-      dt: number;
+      ar?: { id: number; name: string }[];
+      al?: { id: number; name: string; picUrl?: string };
+      artists?: { id: number; name: string }[];
+      album?: { id: number; name: string; picUrl?: string };
+      dt?: number;
+      duration?: number;
     }[];
   };
 }
@@ -43,20 +46,25 @@ interface NeteaseCreatePlaylistResponse {
 function transformTrack(track: {
   id: number;
   name: string;
-  ar: { id: number; name: string }[];
-  al: { id: number; name: string; picUrl?: string };
-  dt: number;
+  ar?: { id: number; name: string }[];
+  al?: { id: number; name: string; picUrl?: string };
+  artists?: { id: number; name: string }[];
+  album?: { id: number; name: string; picUrl?: string };
+  dt?: number;
+  duration?: number;
 }): Track {
+  const artists = track.ar || track.artists || [];
+  const album = track.al || track.album || { id: 0, name: '' };
   return {
     id: String(track.id),
     name: track.name,
-    artists: track.ar.map((a) => ({ id: String(a.id), name: a.name })),
+    artists: artists.map((a) => ({ id: String(a.id), name: a.name })),
     album: {
-      id: String(track.al.id),
-      name: track.al.name,
-      picUrl: track.al.picUrl,
+      id: String(album.id),
+      name: album.name,
+      picUrl: album.picUrl,
     },
-    duration: track.dt,
+    duration: track.dt || track.duration || 0,
     uri: `netease:track:${track.id}`,
   };
 }
@@ -64,9 +72,9 @@ function transformTrack(track: {
 export async function getPlaylistDetail(id: string): Promise<Playlist> {
   const client = getApiClient();
 
-  const response = await client.request<NeteasePlaylistResponse>('/playlist/detail', {
+  const response = await client.request<NeteasePlaylistResponse>('/v6/playlist/detail', {
     id,
-    n: 100000, // 获取所有歌曲
+    n: 100000,
   });
 
   const playlist = response.playlist;
@@ -93,7 +101,7 @@ export async function getUserPlaylists(uid?: string): Promise<Playlist[]> {
   let userId = uid;
   if (!userId) {
     const userInfo = await client.request<{ code: number; profile: { userId: number } }>(
-      '/user/account'
+      '/nuser/account/get'
     );
     userId = String(userInfo.profile.userId);
   }

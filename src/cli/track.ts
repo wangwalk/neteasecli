@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { getTrackDetail, getTrackUrl, getLyric } from '../api/track.js';
+import { getTrackDetail, getTrackUrl, getLyric, downloadTrack } from '../api/track.js';
 import { output, outputError } from '../output/json.js';
 import { ExitCode, type Quality } from '../types/index.js';
 
@@ -59,6 +59,27 @@ export function createTrackCommand(): Command {
         });
       } catch (error) {
         outputError('TRACK_ERROR', error instanceof Error ? error.message : '获取失败');
+        process.exit(ExitCode.NETWORK_ERROR);
+      }
+    });
+
+  track
+    .command('download')
+    .description('下载歌曲到本地')
+    .argument('<id>', '歌曲 ID')
+    .option('-q, --quality <level>', '音质: standard/higher/exhigh/lossless/hires', 'exhigh')
+    .option('-o, --output <path>', '输出文件路径')
+    .action(async (id: string, options) => {
+      try {
+        const result = await downloadTrack(id, options.quality as Quality, options.output);
+        output({
+          id,
+          path: result.path,
+          size: result.size,
+          quality: options.quality,
+        });
+      } catch (error) {
+        outputError('TRACK_ERROR', error instanceof Error ? error.message : '下载失败');
         process.exit(ExitCode.NETWORK_ERROR);
       }
     });

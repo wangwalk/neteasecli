@@ -1,3 +1,5 @@
+import * as os from 'os';
+import * as path from 'path';
 import { getApiClient } from './client.js';
 import type { Track, Lyric, Quality, QualityBrMap } from '../types/index.js';
 
@@ -6,9 +8,12 @@ interface NeteaseTrackDetailResponse {
   songs: {
     id: number;
     name: string;
-    ar: { id: number; name: string }[];
-    al: { id: number; name: string; picUrl?: string };
-    dt: number;
+    ar?: { id: number; name: string }[];
+    al?: { id: number; name: string; picUrl?: string };
+    artists?: { id: number; name: string }[];
+    album?: { id: number; name: string; picUrl?: string };
+    dt?: number;
+    duration?: number;
   }[];
 }
 
@@ -51,16 +56,18 @@ export async function getTrackDetail(id: string): Promise<Track> {
   }
 
   const track = response.songs[0];
+  const artists = track.ar || track.artists || [];
+  const album = track.al || track.album || { id: 0, name: '' };
   return {
     id: String(track.id),
     name: track.name,
-    artists: track.ar.map((a) => ({ id: String(a.id), name: a.name })),
+    artists: artists.map((a) => ({ id: String(a.id), name: a.name })),
     album: {
-      id: String(track.al.id),
-      name: track.al.name,
-      picUrl: track.al.picUrl,
+      id: String(album.id),
+      name: album.name,
+      picUrl: album.picUrl,
     },
-    duration: track.dt,
+    duration: track.dt || track.duration || 0,
     uri: `netease:track:${track.id}`,
   };
 }
@@ -102,6 +109,23 @@ export async function getLyric(id: string): Promise<Lyric> {
   };
 }
 
+export async function downloadTrack(
+  id: string,
+  quality: Quality = 'exhigh',
+  outputPath?: string,
+): Promise<{ path: string; size: number }> {
+  const client = getApiClient();
+  const url = await getTrackUrl(id, quality);
+
+  const ext = url.includes('.flac') ? 'flac' : 'mp3';
+  const dest = outputPath || path.join(os.tmpdir(), `neteasecli-${id}.${ext}`);
+
+  await client.download(url, dest);
+
+  const { size } = await import('fs').then((fs) => fs.statSync(dest));
+  return { path: dest, size };
+}
+
 export async function getTrackDetails(ids: string[]): Promise<Track[]> {
   const client = getApiClient();
 
@@ -112,16 +136,20 @@ export async function getTrackDetails(ids: string[]): Promise<Track[]> {
     ids: `[${ids.join(',')}]`,
   });
 
-  return (response.songs || []).map((track) => ({
-    id: String(track.id),
-    name: track.name,
-    artists: track.ar.map((a) => ({ id: String(a.id), name: a.name })),
-    album: {
-      id: String(track.al.id),
-      name: track.al.name,
-      picUrl: track.al.picUrl,
-    },
-    duration: track.dt,
-    uri: `netease:track:${track.id}`,
-  }));
+  return (response.songs || []).map((track) => {
+    const artists = track.ar || track.artists || [];
+    const album = track.al || track.album || { id: 0, name: '' };
+    return {
+      id: String(track.id),
+      name: track.name,
+      artists: artists.map((a) => ({ id: String(a.id), name: a.name })),
+      album: {
+        id: String(album.id),
+        name: album.name,
+        picUrl: album.picUrl,
+      },
+      duration: track.dt || track.duration || 0,
+      uri: `netease:track:${track.id}`,
+    };
+  });
 }

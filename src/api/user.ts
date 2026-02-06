@@ -17,38 +17,44 @@ interface NeteaseLikelistResponse {
 
 interface NeteaseRecentResponse {
   code: number;
-  data: {
-    list: {
-      resourceId: string;
-      playTime: number;
-      data: {
-        id: number;
-        name: string;
-        ar: { id: number; name: string }[];
-        al: { id: number; name: string; picUrl?: string };
-        dt: number;
-      };
-    }[];
-  };
+  allData?: {
+    playCount: number;
+    score: number;
+    song: {
+      id: number;
+      name: string;
+      ar?: { id: number; name: string }[];
+      al?: { id: number; name: string; picUrl?: string };
+      artists?: { id: number; name: string }[];
+      album?: { id: number; name: string; picUrl?: string };
+      dt?: number;
+      duration?: number;
+    };
+  }[];
 }
 
 function transformTrack(track: {
   id: number;
   name: string;
-  ar: { id: number; name: string }[];
-  al: { id: number; name: string; picUrl?: string };
-  dt: number;
+  ar?: { id: number; name: string }[];
+  al?: { id: number; name: string; picUrl?: string };
+  artists?: { id: number; name: string }[];
+  album?: { id: number; name: string; picUrl?: string };
+  dt?: number;
+  duration?: number;
 }): Track {
+  const artists = track.ar || track.artists || [];
+  const album = track.al || track.album || { id: 0, name: '' };
   return {
     id: String(track.id),
     name: track.name,
-    artists: track.ar.map((a) => ({ id: String(a.id), name: a.name })),
+    artists: artists.map((a) => ({ id: String(a.id), name: a.name })),
     album: {
-      id: String(track.al.id),
-      name: track.al.name,
-      picUrl: track.al.picUrl,
+      id: String(album.id),
+      name: album.name,
+      picUrl: album.picUrl,
     },
-    duration: track.dt,
+    duration: track.dt || track.duration || 0,
     uri: `netease:track:${track.id}`,
   };
 }
@@ -71,7 +77,7 @@ export async function getLikedTrackIds(): Promise<string[]> {
   // 先获取用户 ID
   const userProfile = await getUserProfile();
 
-  const response = await client.request<NeteaseLikelistResponse>('/likelist', {
+  const response = await client.request<NeteaseLikelistResponse>('/song/like/get', {
     uid: userProfile.id,
   });
 
@@ -90,9 +96,11 @@ export async function likeTrack(id: string, like: boolean = true): Promise<void>
 export async function getRecentTracks(limit: number = 100): Promise<Track[]> {
   const client = getApiClient();
 
-  const response = await client.request<NeteaseRecentResponse>('/record/recent/song', {
+  const response = await client.request<NeteaseRecentResponse>('/play/record', {
+    uid: (await getUserProfile()).id,
+    type: 0,
     limit,
   });
 
-  return response.data.list.map((item) => transformTrack(item.data));
+  return (response.allData || []).map((item) => transformTrack(item.song));
 }
