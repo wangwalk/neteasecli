@@ -28,7 +28,13 @@ function aesEncrypt(text: string, key: string, iv: string = IV): string {
 
 // RSA 加密
 function rsaEncrypt(text: string, pubKey: string): string {
-  const buffer = Buffer.from(text.split('').reverse().join(''));
+  const reversedText = text.split('').reverse().join('');
+  // RSA 1024 位密钥 = 128 字节
+  const buffer = Buffer.alloc(128, 0);
+  // 将反转后的密钥从右侧（尾部）开始填充
+  const textBuffer = Buffer.from(reversedText);
+  textBuffer.copy(buffer, 128 - textBuffer.length);
+
   const encrypted = crypto.publicEncrypt(
     {
       key: pubKey,

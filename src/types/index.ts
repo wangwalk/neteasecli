@@ -86,29 +86,6 @@ export const QualityBrMap: Record<Quality, number> = {
   hires: 999000,
 };
 
-// 播放模式
-export type PlayMode = 'sequence' | 'repeat' | 'single' | 'shuffle';
-
-// 播放状态
-export interface PlaybackState {
-  playing: boolean;
-  track: {
-    id: string;
-    name: string;
-    artist: string;
-  } | null;
-  position: number; // 秒
-  duration: number; // 秒
-  volume: number; // 0-100
-  mode: PlayMode;
-}
-
-// 队列项
-export interface QueueItem {
-  track: Track;
-  index: number;
-}
-
 // 用户信息
 export interface UserProfile {
   id: string;
@@ -130,5 +107,4 @@ export const ExitCode = {
   GENERAL_ERROR: 1,
   AUTH_ERROR: 2,
   NETWORK_ERROR: 3,
-  PLAYER_ERROR: 4,
 } as const;

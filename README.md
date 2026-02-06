@@ -1,190 +1,150 @@
 # neteasecli
 
-网易云音乐 AI Agent CLI 工具
+> Simple CLI for Netease Cloud Music
 
-## 特性
+Retrieve music data from Netease Cloud Music. Returns JSON for easy scripting.
 
-- 所有输出 JSON 格式，便于 AI agent 解析和链式调用
-- 自包含：内置 API 加密逻辑，无需部署外部服务
-- 通过 mpv IPC 实现音频播放控制
-- TypeScript 开发
-
-## 安装
+## Installation
 
 ```bash
-# 安装依赖
-npm install
+# Run without installing
+npx neteasecli search track "周杰伦"
+# or
+pnpx neteasecli search track "周杰伦"
+# or
+bunx neteasecli search track "周杰伦"
 
-# 构建
-npm run build
-
-# 全局安装（可选）
-npm link
+# Install globally
+npm install -g neteasecli
+# or
+pnpm install -g neteasecli
+# or
+bun install -g neteasecli
 ```
 
-### 前置依赖
-
-- Node.js >= 18 或 Bun
-- mpv 播放器（用于音频播放）
+## Quick Start
 
 ```bash
-# macOS
-brew install mpv
+# Login via Chrome cookies
+neteasecli auth login
 
-# Ubuntu/Debian
-sudo apt install mpv
+# Search for music
+neteasecli search track "晴天" --limit 5
+
+# Get streaming URL
+neteasecli track url 185868 --pretty
+
+# Pipe to your player
+neteasecli track url 185868 | jq -r '.data.url' | xargs mpv
 ```
 
-## 认证
+## Commands
 
-使用 [Sweet Cookie](https://github.com/nicholasxuu/sweet-cookie) 或其他工具从浏览器导出 Cookie：
+### Authentication
+```bash
+neteasecli auth login              # Import cookies from Chrome
+neteasecli auth check              # Verify login status
+neteasecli auth logout             # Clear session
+```
+
+### Search
+```bash
+neteasecli search track <query>    # Search songs
+neteasecli search album <query>    # Search albums
+neteasecli search playlist <query> # Search playlists
+neteasecli search artist <query>   # Search artists
+```
+
+### Track Info
+```bash
+neteasecli track detail <id>       # Get metadata
+neteasecli track url <id>          # Get streaming URL
+neteasecli track lyric <id>        # Get lyrics
+```
+
+### Library
+```bash
+neteasecli library liked           # List liked songs
+neteasecli library like <id>       # Like a song
+neteasecli library unlike <id>     # Unlike a song
+```
+
+### Playlists
+```bash
+neteasecli playlist list           # List your playlists
+neteasecli playlist detail <id>    # Get playlist tracks
+```
+
+## Options
+
+All commands support:
+- `--json` - JSON output (default)
+- `--pretty` - Pretty-print JSON
+- `--quiet` - Suppress messages
+
+## Playback
+
+This tool doesn't include a player. Get URLs and use whatever you like:
 
 ```bash
-# 导入 Cookie
-neteasecli auth import --file cookies.json
+# mpv
+neteasecli track url 185868 | jq -r '.data.url' | xargs mpv
 
-# 查看登录状态
-neteasecli auth status
+# VLC
+neteasecli track url 185868 | jq -r '.data.url' | xargs vlc
 
-# 登出
-neteasecli auth logout
+# wget
+neteasecli track url 185868 | jq -r '.data.url' | xargs wget -O song.mp3
 ```
 
-Cookie JSON 格式示例：
-```json
-[
-  {"name": "MUSIC_U", "value": "xxx"},
-  {"name": "__csrf", "value": "xxx"}
-]
-```
+## Scripting
 
-或简单 key-value 格式：
-```json
-{
-  "MUSIC_U": "xxx",
-  "__csrf": "xxx"
-}
-```
-
-## 命令
-
-### 搜索
+All commands return JSON with exit code 0 on success:
 
 ```bash
-neteasecli search track "周杰伦" --limit 10
-neteasecli search album "范特西"
-neteasecli search playlist "华语经典"
-neteasecli search artist "林俊杰"
+# Get first search result and play
+neteasecli search track "周杰伦" | \
+  jq -r '.data.tracks[0].id' | \
+  xargs neteasecli track url | \
+  jq -r '.data.url' | \
+  xargs mpv
 ```
 
-### 播放控制
+## Output Format
 
-```bash
-neteasecli play <track_id>               # 播放歌曲
-neteasecli play --playlist <id>          # 播放歌单
-neteasecli pause                         # 暂停
-neteasecli resume                        # 继续
-neteasecli next                          # 下一首
-neteasecli prev                          # 上一首
-neteasecli seek <seconds>                # 跳转
-neteasecli volume [0-100]                # 设置/获取音量
-neteasecli mode shuffle|repeat|single    # 播放模式
-```
-
-### 状态和队列
-
-```bash
-neteasecli status                        # 当前播放状态
-neteasecli queue                         # 查看队列
-neteasecli queue add <track_id>          # 添加到队列
-neteasecli queue clear                   # 清空队列
-```
-
-### 歌单管理
-
-```bash
-neteasecli playlist list                 # 我的歌单
-neteasecli playlist detail <id>          # 歌单详情
-neteasecli playlist create "名称"        # 创建歌单
-neteasecli playlist add <pid> <tid>      # 添加歌曲
-neteasecli playlist remove <pid> <tid>   # 移除歌曲
-```
-
-### 用户库
-
-```bash
-neteasecli library liked                 # 我喜欢的音乐
-neteasecli library like <track_id>       # 收藏
-neteasecli library unlike <track_id>     # 取消收藏
-neteasecli library recent                # 最近播放
-```
-
-### 歌曲信息
-
-```bash
-neteasecli track detail <id>             # 歌曲详情
-neteasecli track url <id> --quality high # 获取播放链接
-neteasecli track lyric <id>              # 获取歌词
-```
-
-## 全局选项
-
-```bash
-neteasecli [command] --json        # JSON 输出（默认）
-neteasecli [command] --pretty      # 格式化 JSON
-neteasecli [command] --quiet       # 静默模式
-```
-
-## JSON 输出格式
-
-成功响应：
+Success:
 ```json
 {
   "success": true,
-  "data": { ... },
-  "error": null
+  "data": { ... }
 }
 ```
 
-错误响应：
+Error:
 ```json
 {
   "success": false,
-  "data": null,
   "error": {
-    "code": "AUTH_EXPIRED",
-    "message": "Cookie 已过期，请重新登录"
+    "code": "AUTH_ERROR",
+    "message": "Cookie expired"
   }
 }
 ```
 
-## 退出码
+## Requirements
 
-- `0` - 成功
-- `1` - 通用错误
-- `2` - 认证错误
-- `3` - 网络错误
-- `4` - 播放器错误
+- Node.js >= 22
+- Chrome (for auth cookies)
+- macOS or Linux
 
-## URI 规范
+## Known Issues
 
-```
-netease:track:185868       # 歌曲
-netease:album:18872        # 专辑
-netease:playlist:123456    # 歌单
-netease:artist:6452        # 歌手
-```
+- Netease API may change without notice
+- Cookies expire and need re-login
+- Streaming URLs expire after ~20 minutes
+- VIP content requires membership
+- Rate limiting exists
 
-## AI Agent 链式调用示例
-
-```bash
-# 搜索并播放第一首
-neteasecli search track "晴天" | jq -r '.data.tracks[0].id' | xargs neteasecli play
-
-# 获取歌单并添加到队列
-neteasecli playlist detail 123456 | jq -r '.data.tracks[].id' | xargs -I {} neteasecli queue add {}
-```
-
-## 许可
+## License
 
 MIT

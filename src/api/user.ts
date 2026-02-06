@@ -56,7 +56,7 @@ function transformTrack(track: {
 export async function getUserProfile(): Promise<UserProfile> {
   const client = getApiClient();
 
-  const response = await client.request<NeteaseUserAccountResponse>('/user/account');
+  const response = await client.request<NeteaseUserAccountResponse>('/nuser/account/get');
 
   return {
     id: String(response.profile.userId),

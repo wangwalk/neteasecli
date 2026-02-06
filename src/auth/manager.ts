@@ -55,12 +55,63 @@ export class AuthManager {
     throw new Error('不支持的 Cookie 格式');
   }
 
-  async importFromBrowser(browser: string): Promise<void> {
-    // 这里可以集成 sweet-cookie 或其他工具
-    // 目前仅提示用户手动导出
-    throw new Error(
-      `暂不支持直接从 ${browser} 导入，请使用 sweet-cookie 工具导出 Cookie 后使用 --file 导入`
-    );
+  async importFromBrowser(profile?: string): Promise<void> {
+    const { getCookies } = await import('@steipete/sweet-cookie');
+
+    const options: any = {
+      url: 'https://music.163.com/',
+      names: ['MUSIC_U', '__csrf'],
+      browsers: ['chrome'],
+    };
+
+    if (profile) {
+      options.chromeProfile = profile;
+    }
+
+    const { cookies, warnings } = await getCookies(options);
+
+    if (warnings.length > 0) {
+      console.warn('⚠️  Cookie 提取警告:', warnings.join(', '));
+    }
+
+    const cookieData: CookieData = {};
+    for (const cookie of cookies) {
+      cookieData[cookie.name] = cookie.value;
+    }
+
+    if (!cookieData.MUSIC_U) {
+      throw new Error(
+        '未能从 Chrome 中找到网易云音乐的登录信息\n' +
+          '请确保：\n' +
+          '1. 已在 Chrome 中登录 https://music.163.com\n' +
+          (profile ? `2. 使用的是正确的 Profile: ${profile}` : '2. 使用的是默认 Profile')
+      );
+    }
+
+    this.cookies = cookieData;
+    saveCookies(cookieData);
+  }
+
+  async checkAuth(): Promise<{ valid: boolean; userId?: string; nickname?: string; error?: string }> {
+    if (!this.isAuthenticated()) {
+      return { valid: false, error: '未登录' };
+    }
+
+    try {
+      // 调用网易云 API 验证登录态
+      const { getUserProfile } = await import('../api/user.js');
+      const profile = await getUserProfile();
+      return {
+        valid: true,
+        userId: profile.id,
+        nickname: profile.nickname,
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        error: error instanceof Error ? error.message : '登录态已失效',
+      };
+    }
   }
 
   isAuthenticated(): boolean {

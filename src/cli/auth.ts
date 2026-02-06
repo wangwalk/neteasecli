@@ -7,36 +7,51 @@ export function createAuthCommand(): Command {
   const auth = new Command('auth').description('认证管理');
 
   auth
-    .command('import')
-    .description('导入 Cookie')
-    .option('--file <path>', '从 JSON 文件导入 Cookie')
-    .option('--browser <name>', '从浏览器导入 Cookie (chrome/firefox/safari)')
+    .command('login')
+    .description('从 Chrome 导入登录信息')
+    .option('--profile <name>', '指定 Chrome Profile 名称（默认使用 Default）')
     .action(async (options) => {
       const authManager = getAuthManager();
 
       try {
-        if (options.file) {
-          await authManager.importFromFile(options.file);
-          output({ message: 'Cookie 导入成功', authenticated: true });
-        } else if (options.browser) {
-          await authManager.importFromBrowser(options.browser);
-          output({ message: 'Cookie 导入成功', authenticated: true });
-        } else {
-          outputError('INVALID_ARGS', '请指定 --file 或 --browser 参数');
-          process.exit(ExitCode.GENERAL_ERROR);
-        }
+        await authManager.importFromBrowser(options.profile);
+        output({
+          message: '登录成功',
+          authenticated: true,
+          profile: options.profile || 'Default',
+        });
       } catch (error) {
-        outputError('AUTH_ERROR', error instanceof Error ? error.message : '导入失败');
+        outputError('AUTH_ERROR', error instanceof Error ? error.message : '登录失败');
         process.exit(ExitCode.AUTH_ERROR);
       }
     });
 
   auth
-    .command('status')
-    .description('查看登录状态')
-    .action(() => {
+    .command('check')
+    .description('检查登录状态')
+    .action(async () => {
       const authManager = getAuthManager();
-      output(authManager.getStatus());
+
+      try {
+        const result = await authManager.checkAuth();
+        if (result.valid) {
+          output({
+            valid: true,
+            userId: result.userId,
+            nickname: result.nickname,
+            message: `已登录: ${result.nickname} (${result.userId})`,
+          });
+        } else {
+          output({
+            valid: false,
+            error: result.error,
+            message: result.error || '未登录',
+          });
+        }
+      } catch (error) {
+        outputError('AUTH_ERROR', error instanceof Error ? error.message : '检查失败');
+        process.exit(ExitCode.AUTH_ERROR);
+      }
     });
 
   auth

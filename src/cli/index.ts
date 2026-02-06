@@ -1,17 +1,6 @@
 import { Command } from 'commander';
 import { createAuthCommand } from './auth.js';
 import { createSearchCommand } from './search.js';
-import {
-  createPlayCommand,
-  createPauseCommand,
-  createResumeCommand,
-  createNextCommand,
-  createPrevCommand,
-  createSeekCommand,
-  createVolumeCommand,
-  createModeCommand,
-} from './play.js';
-import { createStatusCommand, createQueueCommand } from './status.js';
 import { createPlaylistCommand } from './playlist.js';
 import { createLibraryCommand } from './library.js';
 import { createTrackCommand } from './track.js';
@@ -22,8 +11,8 @@ export function createProgram(): Command {
 
   program
     .name('neteasecli')
-    .description('网易云音乐 AI Agent CLI 工具')
-    .version('1.0.0')
+    .description('Simple CLI for Netease Cloud Music')
+    .version('2.0.0')
     .option('--json', 'JSON 输出（默认）')
     .option('--pretty', '格式化 JSON 输出')
     .option('--quiet', '静默模式')
@@ -37,22 +26,12 @@ export function createProgram(): Command {
       }
     });
 
-  // 添加所有子命令
+  // Core commands (read-only data retrieval)
   program.addCommand(createAuthCommand());
   program.addCommand(createSearchCommand());
-  program.addCommand(createPlayCommand());
-  program.addCommand(createPauseCommand());
-  program.addCommand(createResumeCommand());
-  program.addCommand(createNextCommand());
-  program.addCommand(createPrevCommand());
-  program.addCommand(createSeekCommand());
-  program.addCommand(createVolumeCommand());
-  program.addCommand(createModeCommand());
-  program.addCommand(createStatusCommand());
-  program.addCommand(createQueueCommand());
-  program.addCommand(createPlaylistCommand());
-  program.addCommand(createLibraryCommand());
   program.addCommand(createTrackCommand());
+  program.addCommand(createLibraryCommand());
+  program.addCommand(createPlaylistCommand());
 
   return program;
 }
