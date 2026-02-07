@@ -128,9 +128,9 @@ if (hasAuth) {
   }
 }
 
-// --- Download test (auth required, skip in CI to save time) ---
+// --- Download test (auth required) ---
 console.log('\n=== Download ===');
-if (hasAuth && !process.env.CI) {
+if (hasAuth) {
   const tmpFile = join(tmpdir(), `neteasecli-test-${Date.now()}.mp3`);
   const dlResult = await new Promise((resolve) => {
     execFile('node', [CLI, 'track', 'download', TRACK_ID, '-o', tmpFile], { timeout: 120000 }, (err, stdout, stderr) => {
@@ -142,7 +142,7 @@ if (hasAuth && !process.env.CI) {
   if (dlResult.ok) { console.log(`  ✓  ${pad3}`); pass++; } else { console.log(`  ✗  ${pad3}`); fail++; }
   rmSync(tmpFile, { force: true });
 } else {
-  skipTest('track download', hasAuth ? 'CI environment' : 'MUSIC_U not set');
+  skipTest('track download', 'MUSIC_U not set');
 }
 
 // --- Summary ---
