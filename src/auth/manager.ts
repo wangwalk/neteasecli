@@ -3,6 +3,7 @@ import type { CookieData } from '../types/index.js';
 
 export class AuthManager {
   private cookies: CookieData | null = null;
+  private cookieSource: string | undefined;
 
   constructor() {
     this.cookies = loadCookies();
@@ -14,7 +15,6 @@ export class AuthManager {
     const options: any = {
       url: 'https://music.163.com/',
       names: ['MUSIC_U', '__csrf'],
-      browsers: ['chrome'],
     };
 
     if (profile) {
@@ -24,12 +24,16 @@ export class AuthManager {
     const { cookies, warnings } = await getCookies(options);
 
     const cookieData: CookieData = {};
+    let source: string | undefined;
     for (const cookie of cookies) {
       cookieData[cookie.name] = cookie.value;
+      if (!source && cookie.source?.browser) {
+        source = cookie.source.browser;
+      }
     }
 
     if (!cookieData.MUSIC_U) {
-      const parts = ['Could not find Netease login cookies in Chrome.'];
+      const parts = ['Could not find Netease login cookies.'];
       if (warnings.length > 0) {
         parts.push('', 'Warnings:');
         for (const w of warnings) {
@@ -39,9 +43,9 @@ export class AuthManager {
       parts.push(
         '',
         'Options:',
-        '  1. Login to music.163.com in Chrome',
+        '  1. Login to music.163.com in Chrome, Edge, Firefox, or Safari',
         '  2. Run `neteasecli auth login`',
-        profile ? `  3. Check Chrome profile: ${profile}` : '  3. Use --profile <name> for a specific Chrome profile',
+        '  3. Use --profile <name> for a specific Chrome profile',
       );
       throw new Error(parts.join('\n'));
     }
@@ -54,6 +58,7 @@ export class AuthManager {
     }
 
     this.cookies = cookieData;
+    this.cookieSource = source;
     saveCookies(cookieData);
   }
 
@@ -72,7 +77,7 @@ export class AuthManager {
     const warnings: string[] = [];
 
     if (!this.cookies) {
-      warnings.push('No session file found. Run `neteasecli auth login` to import cookies from Chrome.');
+      warnings.push('No session file found. Run `neteasecli auth login` to import cookies from your browser.');
       return { valid: false, error: 'Not logged in', credentials, warnings };
     }
 
@@ -122,6 +127,10 @@ export class AuthManager {
 
   getCsrfToken(): string {
     return this.cookies?.__csrf || '';
+  }
+
+  getSource(): string | undefined {
+    return this.cookieSource;
   }
 
   logout(): void {

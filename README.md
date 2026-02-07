@@ -11,7 +11,7 @@ Search, play, download, and manage your library — all from the terminal with s
 - Track info, streaming URLs, lyrics, download
 - Library management (liked tracks, recent history)
 - Playlist browsing
-- Browser cookie import via [sweet-cookie](https://github.com/nicolo-ribaudo/sweet-cookie) (no login API needed)
+- Browser cookie import from Chrome, Edge, Firefox, Safari via [sweet-cookie](https://github.com/nicolo-ribaudo/sweet-cookie)
 - Multi-profile support for multiple accounts
 - Three output modes: colorized human-readable, JSON, plain text
 - Debug/verbose logging (`-v`, `-d`)
@@ -19,9 +19,10 @@ Search, play, download, and manage your library — all from the terminal with s
 
 ## Why Cookies?
 
-Netease Cloud Music has no public API. The unofficial API endpoints require encrypted requests and valid session cookies. Instead of implementing a fragile login flow (SMS/QR code), neteasecli imports cookies directly from your Chrome browser:
+Netease Cloud Music has no public API. The unofficial API endpoints require encrypted requests and valid session cookies. Instead of implementing a fragile login flow (SMS/QR code), neteasecli imports cookies directly from your browser:
 
-- **No credentials stored** — reads Chrome's encrypted cookie DB via OS keychain
+- **Multi-browser** — Chrome, Edge, Firefox, Safari (auto-detected)
+- **No credentials stored** — reads browser's encrypted cookie DB via OS keychain
 - **No captcha** — skip SMS verification entirely
 - **Always fresh** — re-run `auth login` anytime to refresh
 - **One command** — `neteasecli auth login` and you're in
@@ -51,8 +52,8 @@ neteasecli player stop                   # Stop
 ### auth
 
 ```bash
-neteasecli auth login              # Import cookies from Chrome / 从 Chrome 导入 Cookie
-neteasecli auth login --profile X  # Specify Chrome profile / 指定 Chrome Profile
+neteasecli auth login              # Import cookies from browser / 从浏览器导入 Cookie
+neteasecli auth login --profile X  # Specify Chrome/Edge profile / 指定 Chrome/Edge Profile
 neteasecli auth check              # Check login status / 检查登录状态
 neteasecli auth logout             # Logout / 登出
 ```
@@ -159,7 +160,7 @@ Profiles are stored in `~/.config/neteasecli/profiles/<name>/`.
 ## Requirements / 环境要求
 
 - Node.js >= 22
-- Chrome (for cookie import / 用于导入 Cookie)
+- Chrome, Edge, Firefox, or Safari (for cookie import / 用于导入 Cookie)
 - [mpv](https://mpv.io/) (optional, for playback / 可选，用于播放)
 - macOS, Linux, or Windows
 

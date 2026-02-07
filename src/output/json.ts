@@ -192,9 +192,9 @@ function outputHuman<T>(data: T): void {
     }
     if (!d.valid) {
       console.log(`\n${red('✗')} Missing credentials. Options:`);
-      console.log(`   1. Login to ${cyan('music.163.com')} in Chrome`);
+      console.log(`   1. Login to ${cyan('music.163.com')} in Chrome, Edge, Firefox, or Safari`);
       console.log(`   2. Run ${cyan('neteasecli auth login')}`);
-      console.log(`   3. Use ${cyan('--profile <name>')} for a specific Chrome profile`);
+      console.log(`   3. Use ${cyan('--profile <name>')} for a specific Chrome/Edge profile`);
     }
     return;
   }

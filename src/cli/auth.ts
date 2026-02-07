@@ -9,18 +9,18 @@ export function createAuthCommand(): Command {
 
   auth
     .command('login')
-    .description('Import login cookies from Chrome')
-    .option('--profile <name>', 'Chrome profile name (default: Default)')
+    .description('Import login cookies from browser (Chrome, Edge, Firefox, Safari)')
+    .option('--profile <name>', 'Chrome/Edge profile name')
     .action(async (options) => {
       const authManager = getAuthManager();
 
       try {
         await authManager.importFromBrowser(options.profile);
+        const source = authManager.getSource();
         output({
-          message: 'Login successful',
+          message: `Login successful${source ? ` (via ${source})` : ''}`,
           authenticated: true,
-          method: 'chrome',
-          profile: options.profile || 'Default',
+          browser: source || 'unknown',
         });
       } catch (error) {
         outputError('AUTH_ERROR', error instanceof Error ? error.message : 'Login failed');
