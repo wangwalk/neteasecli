@@ -56,6 +56,29 @@ class MpvPlayer {
     await this.sendCommand(['cycle', 'pause']);
   }
 
+  async seek(seconds: number, mode: 'relative' | 'absolute' = 'relative'): Promise<void> {
+    await this.sendCommand(['seek', String(seconds), mode]);
+  }
+
+  async setVolume(volume: number): Promise<void> {
+    await this.setProperty('volume', Math.max(0, Math.min(150, volume)));
+  }
+
+  async getVolume(): Promise<number> {
+    const vol = await this.getProperty('volume').catch(() => 100);
+    return Number(vol) || 100;
+  }
+
+  async setLoop(mode: 'no' | 'inf' | 'force'): Promise<void> {
+    // 'no' = no loop, 'inf' = loop current file, 'force' = same but force
+    await this.setProperty('loop-file', mode);
+  }
+
+  async getLoop(): Promise<string> {
+    const loop = await this.getProperty('loop-file').catch(() => 'no');
+    return String(loop);
+  }
+
   async stop(): Promise<void> {
     if (this.process) {
       try {
@@ -76,16 +99,20 @@ class MpvPlayer {
     duration: number;
     paused: boolean;
     playing: boolean;
+    volume: number;
+    loop: string;
   }> {
     if (!this.isRunning()) {
-      return { position: 0, duration: 0, paused: false, playing: false };
+      return { position: 0, duration: 0, paused: false, playing: false, volume: 100, loop: 'no' };
     }
 
     try {
-      const [position, duration, paused] = await Promise.all([
+      const [position, duration, paused, volume, loop] = await Promise.all([
         this.getProperty('time-pos').catch(() => 0),
         this.getProperty('duration').catch(() => 0),
         this.getProperty('pause').catch(() => false),
+        this.getProperty('volume').catch(() => 100),
+        this.getProperty('loop-file').catch(() => 'no'),
       ]);
 
       return {
@@ -94,9 +121,11 @@ class MpvPlayer {
         duration: Number(duration) || 0,
         paused: Boolean(paused),
         playing: true,
+        volume: Number(volume) || 100,
+        loop: String(loop),
       };
     } catch {
-      return { title: this.currentTitle, position: 0, duration: 0, paused: false, playing: false };
+      return { title: this.currentTitle, position: 0, duration: 0, paused: false, playing: false, volume: 100, loop: 'no' };
     }
   }
 
@@ -106,6 +135,10 @@ class MpvPlayer {
 
   private getProperty(name: string): Promise<unknown> {
     return this.sendCommand(['get_property', name]);
+  }
+
+  private setProperty(name: string, value: unknown): Promise<unknown> {
+    return this.sendCommand(['set_property', name, value]);
   }
 
   private sendCommand(command: unknown[]): Promise<unknown> {

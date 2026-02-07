@@ -7,7 +7,7 @@ Search, play, download, and manage your library — all from the terminal with s
 ## Features
 
 - Search tracks, albums, artists, playlists
-- Playback via [mpv](https://mpv.io/) with IPC control (play/pause/stop/status)
+- Playback via [mpv](https://mpv.io/) with IPC control (play/pause/stop/seek/volume/repeat)
 - Track info, streaming URLs, lyrics, download
 - Library management (liked tracks, recent history)
 - Playlist browsing
@@ -88,6 +88,10 @@ Requires [mpv](https://mpv.io/). / 需要安装 [mpv](https://mpv.io/)。
 neteasecli player status           # Current playback status / 播放状态
 neteasecli player pause            # Toggle pause/resume / 暂停或继续
 neteasecli player stop             # Stop playback / 停止播放
+neteasecli player seek <seconds>   # Seek relative (e.g. 10, -10) / 快进快退
+neteasecli player seek 30 --absolute  # Seek to absolute position / 跳转到指定位置
+neteasecli player volume [0-150]   # Get or set volume / 音量
+neteasecli player repeat [on|off]  # Toggle or set repeat / 单曲循环
 ```
 
 ### library

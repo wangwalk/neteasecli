@@ -9,6 +9,13 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+function requireRunning(): void {
+  if (!mpvPlayer.isRunning()) {
+    outputError('PLAYER_ERROR', 'Nothing is playing');
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+}
+
 export function createPlayerCommand(): Command {
   const player = new Command('player').description('Playback control');
 
@@ -22,6 +29,7 @@ export function createPlayerCommand(): Command {
           output({ playing: false, message: 'Nothing is playing' });
           return;
         }
+        const repeat = status.loop !== 'no' && status.loop !== 'false';
         output({
           playing: true,
           paused: status.paused,
@@ -30,7 +38,9 @@ export function createPlayerCommand(): Command {
           duration: status.duration,
           positionFormatted: formatTime(status.position),
           durationFormatted: formatTime(status.duration),
-          message: `${status.paused ? '⏸' : '▶'} ${status.title || 'Unknown'} ${formatTime(status.position)}/${formatTime(status.duration)}`,
+          volume: Math.round(status.volume),
+          repeat,
+          message: `${status.paused ? '⏸' : '▶'} ${status.title || 'Unknown'} ${formatTime(status.position)}/${formatTime(status.duration)} vol:${Math.round(status.volume)}%${repeat ? ' 🔁' : ''}`,
         });
       } catch (error) {
         outputError('PLAYER_ERROR', error instanceof Error ? error.message : 'Failed');
@@ -43,11 +53,7 @@ export function createPlayerCommand(): Command {
     .description('Toggle pause/resume')
     .action(async () => {
       try {
-        if (!mpvPlayer.isRunning()) {
-          outputError('PLAYER_ERROR', 'Nothing is playing');
-          process.exit(ExitCode.GENERAL_ERROR);
-          return;
-        }
+        requireRunning();
         await mpvPlayer.pause();
         const status = await mpvPlayer.getStatus();
         output({
@@ -67,6 +73,80 @@ export function createPlayerCommand(): Command {
       try {
         await mpvPlayer.stop();
         output({ message: 'Stopped' });
+      } catch (error) {
+        outputError('PLAYER_ERROR', error instanceof Error ? error.message : 'Failed');
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
+    });
+
+  player
+    .command('seek <seconds>')
+    .description('Seek by relative seconds (e.g. 10, -10) or absolute with --absolute')
+    .option('--absolute', 'Seek to absolute position')
+    .action(async (seconds: string, opts: { absolute?: boolean }) => {
+      try {
+        requireRunning();
+        const secs = Number(seconds);
+        if (isNaN(secs)) {
+          outputError('PLAYER_ERROR', 'Invalid seconds value');
+          process.exit(ExitCode.GENERAL_ERROR);
+          return;
+        }
+        await mpvPlayer.seek(secs, opts.absolute ? 'absolute' : 'relative');
+        const status = await mpvPlayer.getStatus();
+        output({
+          position: status.position,
+          duration: status.duration,
+          positionFormatted: formatTime(status.position),
+          durationFormatted: formatTime(status.duration),
+          message: `Seeked to ${formatTime(status.position)}/${formatTime(status.duration)}`,
+        });
+      } catch (error) {
+        outputError('PLAYER_ERROR', error instanceof Error ? error.message : 'Failed');
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
+    });
+
+  player
+    .command('volume [level]')
+    .description('Get or set volume (0-150)')
+    .action(async (level?: string) => {
+      try {
+        requireRunning();
+        if (level !== undefined) {
+          const vol = Number(level);
+          if (isNaN(vol)) {
+            outputError('PLAYER_ERROR', 'Invalid volume value');
+            process.exit(ExitCode.GENERAL_ERROR);
+            return;
+          }
+          await mpvPlayer.setVolume(vol);
+          output({ volume: vol, message: `Volume: ${vol}%` });
+        } else {
+          const vol = await mpvPlayer.getVolume();
+          output({ volume: vol, message: `Volume: ${Math.round(vol)}%` });
+        }
+      } catch (error) {
+        outputError('PLAYER_ERROR', error instanceof Error ? error.message : 'Failed');
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
+    });
+
+  player
+    .command('repeat [mode]')
+    .description('Toggle or set repeat mode (off/on)')
+    .action(async (mode?: string) => {
+      try {
+        requireRunning();
+        if (mode !== undefined) {
+          await mpvPlayer.setLoop(mode === 'on' ? 'inf' : 'no');
+          output({ repeat: mode === 'on', message: `Repeat: ${mode}` });
+        } else {
+          const current = await mpvPlayer.getLoop();
+          const isOn = current !== 'no' && current !== 'false';
+          await mpvPlayer.setLoop(isOn ? 'no' : 'inf');
+          output({ repeat: !isOn, message: `Repeat: ${!isOn ? 'on' : 'off'}` });
+        }
       } catch (error) {
         outputError('PLAYER_ERROR', error instanceof Error ? error.message : 'Failed');
         process.exit(ExitCode.GENERAL_ERROR);
