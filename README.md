@@ -1,10 +1,30 @@
 # neteasecli
 
-网易云音乐命令行工具 / Netease Cloud Music CLI
+Netease Cloud Music CLI / 网易云音乐命令行工具
 
-JSON output for easy scripting and agent integration.
+Search, play, download, and manage your library — all from the terminal with structured JSON output for scripting and AI agent integration.
 
-## Installation / 安装
+## Features
+
+- Search tracks, albums, artists, playlists
+- Playback via [mpv](https://mpv.io/) with IPC control (play/pause/stop/status)
+- Track info, streaming URLs, lyrics, download
+- Library management (liked tracks, recent history)
+- Playlist browsing
+- Browser cookie import via [sweet-cookie](https://github.com/nicolo-ribaudo/sweet-cookie) (no login API needed)
+- JSON output with `--pretty` and `--quiet` modes
+- Cross-platform: macOS, Linux, Windows
+
+## Why Cookies?
+
+Netease Cloud Music has no public API. The unofficial API endpoints require encrypted requests and valid session cookies. Instead of implementing a fragile login flow (SMS/QR code), neteasecli imports cookies directly from your Chrome browser:
+
+- **No credentials stored** — reads Chrome's encrypted cookie DB via OS keychain
+- **No captcha** — skip SMS verification entirely
+- **Always fresh** — re-run `auth login` anytime to refresh
+- **One command** — `neteasecli auth login` and you're in
+
+## Install / 安装
 
 ```bash
 # Run without installing / 免安装运行
@@ -17,19 +37,11 @@ npm install -g neteasecli
 ## Quick Start / 快速开始
 
 ```bash
-# Login via Chrome cookies / 从 Chrome 导入登录信息
-neteasecli auth login
-
-# Search / 搜索
-neteasecli search track "Sunny Day"
-
-# Play a track (requires mpv) / 播放歌曲（需要 mpv）
-neteasecli track play 185868
-
-# Playback control / 播放控制
-neteasecli player status
-neteasecli player pause
-neteasecli player stop
+neteasecli auth login                    # Import cookies from Chrome
+neteasecli search track "Sunny Day"      # Search
+neteasecli track play 185868             # Play (requires mpv)
+neteasecli player pause                  # Pause/resume
+neteasecli player stop                   # Stop
 ```
 
 ## Commands / 命令
@@ -68,12 +80,12 @@ Options: `-q, --quality <level>` standard | higher | exhigh (default) | lossless
 
 ### player
 
-Requires [mpv](https://mpv.io/) installed. / 需要安装 [mpv](https://mpv.io/)。
+Requires [mpv](https://mpv.io/). / 需要安装 [mpv](https://mpv.io/)。
 
 ```bash
-neteasecli player status           # Current status / 当前状态
-neteasecli player pause            # Toggle pause / 暂停或继续
-neteasecli player stop             # Stop / 停止
+neteasecli player status           # Current playback status / 播放状态
+neteasecli player pause            # Toggle pause/resume / 暂停或继续
+neteasecli player stop             # Stop playback / 停止播放
 ```
 
 ### library
@@ -97,7 +109,9 @@ neteasecli playlist detail <id>    # Playlist tracks / 歌单详情
 - `--pretty` Pretty-print JSON / 格式化输出
 - `--quiet` Suppress output / 静默模式
 
-## Output Format / 输出格式
+## Output / 输出
+
+All commands return structured JSON:
 
 ```jsonc
 // Success
@@ -107,12 +121,20 @@ neteasecli playlist detail <id>    # Playlist tracks / 歌单详情
 { "success": false, "error": { "code": "AUTH_ERROR", "message": "..." } }
 ```
 
+Exit codes: `0` success, `1` general error, `2` auth error, `3` network error.
+
 ## Requirements / 环境要求
 
 - Node.js >= 22
 - Chrome (for cookie import / 用于导入 Cookie)
-- [mpv](https://mpv.io/) (for playback / 用于播放)
+- [mpv](https://mpv.io/) (optional, for playback / 可选，用于播放)
 - macOS, Linux, or Windows
+
+## Legal / 免责
+
+This tool uses unofficial Netease Cloud Music API endpoints. Use responsibly and in accordance with Netease's Terms of Service.
+
+本工具使用非官方网易云音乐 API，请合理使用并遵守网易云音乐服务条款。
 
 ## License
 
