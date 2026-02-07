@@ -1,5 +1,5 @@
 import { getApiClient } from './client.js';
-import type { SearchType, SearchResult, Track, Album, Playlist, Artist, SearchTypeMap } from '../types/index.js';
+import type { SearchType, SearchResult, Track, Album, Playlist, Artist } from '../types/index.js';
 
 interface NeteaseSearchResponse {
   code: number;
@@ -43,7 +43,6 @@ interface NeteaseArtist {
   name: string;
 }
 
-// 搜索类型映射
 const typeMap: Record<SearchType, number> = {
   track: 1,
   album: 10,

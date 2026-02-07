@@ -1,149 +1,118 @@
 # neteasecli
 
-> Simple CLI for Netease Cloud Music
+网易云音乐命令行工具 / Netease Cloud Music CLI
 
-Retrieve music data from Netease Cloud Music. Returns JSON for easy scripting.
+JSON output for easy scripting and agent integration.
 
-## Installation
+## Installation / 安装
 
 ```bash
-# Run without installing
-npx neteasecli search track "周杰伦"
-# or
-pnpx neteasecli search track "周杰伦"
-# or
-bunx neteasecli search track "周杰伦"
+# Run without installing / 免安装运行
+npx neteasecli search track "Jay Chou"
 
-# Install globally
+# Install globally / 全局安装
 npm install -g neteasecli
-# or
-pnpm install -g neteasecli
-# or
-bun install -g neteasecli
 ```
 
-## Quick Start
+## Quick Start / 快速开始
 
 ```bash
-# Login via Chrome cookies
-neteasecli auth login
+# Login via Chrome cookies / 从 Chrome 导入登录信息
+netease auth login
 
-# Search for music
-neteasecli search track "晴天" --limit 5
+# Search / 搜索
+netease search track "Sunny Day"
 
-# Get streaming URL
-neteasecli track url 185868 --pretty
+# Play a track (requires mpv) / 播放歌曲（需要 mpv）
+netease track play 185868
 
-# Pipe to your player
-neteasecli track url 185868 | jq -r '.data.url' | xargs mpv
+# Playback control / 播放控制
+netease player status
+netease player pause
+netease player stop
 ```
 
-## Commands
+## Commands / 命令
 
-### Authentication
-```bash
-neteasecli auth login              # Import cookies from Chrome
-neteasecli auth check              # Verify login status
-neteasecli auth logout             # Clear session
-```
-
-### Search
-```bash
-neteasecli search track <query>    # Search songs
-neteasecli search album <query>    # Search albums
-neteasecli search playlist <query> # Search playlists
-neteasecli search artist <query>   # Search artists
-```
-
-### Track Info
-```bash
-neteasecli track detail <id>       # Get metadata
-neteasecli track url <id>          # Get streaming URL
-neteasecli track lyric <id>        # Get lyrics
-```
-
-### Library
-```bash
-neteasecli library liked           # List liked songs
-neteasecli library like <id>       # Like a song
-neteasecli library unlike <id>     # Unlike a song
-```
-
-### Playlists
-```bash
-neteasecli playlist list           # List your playlists
-neteasecli playlist detail <id>    # Get playlist tracks
-```
-
-## Options
-
-All commands support:
-- `--json` - JSON output (default)
-- `--pretty` - Pretty-print JSON
-- `--quiet` - Suppress messages
-
-## Playback
-
-This tool doesn't include a player. Get URLs and use whatever you like:
+### auth
 
 ```bash
-# mpv
-neteasecli track url 185868 | jq -r '.data.url' | xargs mpv
-
-# VLC
-neteasecli track url 185868 | jq -r '.data.url' | xargs vlc
-
-# wget
-neteasecli track url 185868 | jq -r '.data.url' | xargs wget -O song.mp3
+netease auth login              # Import cookies from Chrome / 从 Chrome 导入 Cookie
+netease auth login --profile X  # Specify Chrome profile / 指定 Chrome Profile
+netease auth check              # Check login status / 检查登录状态
+netease auth logout             # Logout / 登出
 ```
 
-## Scripting
-
-All commands return JSON with exit code 0 on success:
+### search
 
 ```bash
-# Get first search result and play
-neteasecli search track "周杰伦" | \
-  jq -r '.data.tracks[0].id' | \
-  xargs neteasecli track url | \
-  jq -r '.data.url' | \
-  xargs mpv
+netease search track <query>    # Search tracks / 搜索歌曲
+netease search album <query>    # Search albums / 搜索专辑
+netease search playlist <query> # Search playlists / 搜索歌单
+netease search artist <query>   # Search artists / 搜索歌手
 ```
 
-## Output Format
+Options: `-l, --limit <n>` (default 20), `-o, --offset <n>` (default 0)
 
-Success:
-```json
-{
-  "success": true,
-  "data": { ... }
-}
+### track
+
+```bash
+netease track detail <id>       # Track metadata / 歌曲详情
+netease track url <id>          # Streaming URL / 播放链接
+netease track lyric <id>        # Lyrics / 歌词
+netease track download <id>     # Download / 下载
+netease track play <id>         # Play via mpv / 用 mpv 播放
 ```
 
-Error:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "AUTH_ERROR",
-    "message": "Cookie expired"
-  }
-}
+Options: `-q, --quality <level>` standard | higher | exhigh (default) | lossless | hires
+
+### player
+
+Requires [mpv](https://mpv.io/) installed. / 需要安装 [mpv](https://mpv.io/)。
+
+```bash
+netease player status           # Current status / 当前状态
+netease player pause            # Toggle pause / 暂停或继续
+netease player stop             # Stop / 停止
 ```
 
-## Requirements
+### library
+
+```bash
+netease library liked           # Liked tracks / 喜欢的音乐
+netease library like <id>       # Like a track / 收藏
+netease library unlike <id>     # Unlike / 取消收藏
+netease library recent          # Recently played / 最近播放
+```
+
+### playlist
+
+```bash
+netease playlist list           # My playlists / 我的歌单
+netease playlist detail <id>    # Playlist tracks / 歌单详情
+```
+
+## Global Options / 全局选项
+
+- `--pretty` Pretty-print JSON / 格式化输出
+- `--quiet` Suppress output / 静默模式
+
+## Output Format / 输出格式
+
+```jsonc
+// Success
+{ "success": true, "data": { ... } }
+
+// Error
+{ "success": false, "error": { "code": "AUTH_ERROR", "message": "..." } }
+```
+
+## Requirements / 环境要求
 
 - Node.js >= 22
-- Chrome (for auth cookies)
+- Chrome (for cookie import / 用于导入 Cookie)
+- [mpv](https://mpv.io/) (for playback / 用于播放)
 - macOS or Linux
-
-## Known Issues
-
-- Netease API may change without notice
-- Cookies expire and need re-login
-- Streaming URLs expire after ~20 minutes
-- VIP content requires membership
-- Rate limiting exists
 
 ## License
 

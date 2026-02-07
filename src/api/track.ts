@@ -1,7 +1,7 @@
 import * as os from 'os';
 import * as path from 'path';
 import { getApiClient } from './client.js';
-import type { Track, Lyric, Quality, QualityBrMap } from '../types/index.js';
+import type { Track, Lyric, Quality } from '../types/index.js';
 
 interface NeteaseTrackDetailResponse {
   code: number;
@@ -34,7 +34,6 @@ interface NeteaseLyricResponse {
   tlyric?: { lyric: string };
 }
 
-// 音质映射
 const qualityBrMap: Record<Quality, number> = {
   standard: 128000,
   higher: 192000,
@@ -52,7 +51,7 @@ export async function getTrackDetail(id: string): Promise<Track> {
   });
 
   if (!response.songs || response.songs.length === 0) {
-    throw new Error(`歌曲不存在: ${id}`);
+    throw new Error(`Track not found: ${id}`);
   }
 
   const track = response.songs[0];
@@ -83,12 +82,12 @@ export async function getTrackUrl(id: string, quality: Quality = 'exhigh'): Prom
   });
 
   if (!response.data || response.data.length === 0) {
-    throw new Error(`无法获取歌曲链接: ${id}`);
+    throw new Error(`Cannot get track URL: ${id}`);
   }
 
   const url = response.data[0].url;
   if (!url) {
-    throw new Error('歌曲暂无版权或需要 VIP');
+    throw new Error('Track unavailable (no copyright or VIP required)');
   }
 
   return url;

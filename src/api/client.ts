@@ -1,4 +1,5 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios, { AxiosInstance, AxiosError, type AxiosResponse } from 'axios';
+import * as crypto from 'crypto';
 import { weapi, linuxapi, eapi } from './crypto.js';
 import { getAuthManager } from '../auth/manager.js';
 import * as fs from 'fs';
@@ -7,23 +8,28 @@ import * as https from 'https';
 import { pipeline } from 'stream/promises';
 import type { Readable } from 'stream';
 
-// 强制 IPv4，避免 IPv6 触发 CDN 防盗链
+// Force IPv4 to avoid IPv6 CDN hotlink protection issues
 const httpAgent = new http.Agent({ family: 4 });
 const httpsAgent = new https.Agent({ family: 4 });
 
 const BASE_URL = 'https://music.163.com';
 const USER_AGENT =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0';
 
 export type CryptoType = 'weapi' | 'linuxapi' | 'eapi';
 
 export interface RequestOptions {
   crypto?: CryptoType;
-  url?: string; // eapi 需要的 URL 路径
+  url?: string;
 }
 
 export class ApiClient {
   private client: AxiosInstance;
+
+  private readonly sDeviceId = `unknown-${Math.floor(Math.random() * 1000000)}`;
+  private readonly nmtid = crypto.randomBytes(16).toString('hex');
+
+  private sessionCookies: Record<string, string> = {};
 
   constructor() {
     this.client = axios.create({
@@ -33,18 +39,50 @@ export class ApiClient {
         'User-Agent': USER_AGENT,
         'Content-Type': 'application/x-www-form-urlencoded',
         Referer: 'https://music.163.com',
-        Origin: 'https://music.163.com',
-        'X-Real-IP': '118.88.88.88',
       },
     });
   }
 
-  private getCookieHeader(): string {
+  private collectCookies(response: AxiosResponse): void {
+    const setCookieHeaders = response.headers['set-cookie'];
+    if (!setCookieHeaders) return;
+    for (const header of setCookieHeaders) {
+      const match = header.match(/^([^=]+)=([^;]*)/);
+      if (match) {
+        this.sessionCookies[match[1]] = match[2];
+      }
+    }
+  }
+
+  private getCookieHeader(endpoint?: string): string {
     const authManager = getAuthManager();
-    return authManager.getCookieString();
+    const userCookies = authManager.getCookieString();
+
+    const parts: string[] = [
+      'os=pc',
+      `sDeviceId=${this.sDeviceId}`,
+      '__remember_me=true',
+    ];
+
+    if (endpoint && endpoint.includes('login')) {
+      parts.push(`NMTID=${this.nmtid}`);
+    }
+
+    if (userCookies) {
+      parts.push(userCookies);
+    }
+
+    for (const [name, value] of Object.entries(this.sessionCookies)) {
+      parts.push(`${name}=${value}`);
+    }
+
+    return parts.join('; ');
   }
 
   private getCsrf(): string {
+    if (this.sessionCookies['__csrf']) {
+      return this.sessionCookies['__csrf'];
+    }
     const authManager = getAuthManager();
     return authManager.getCsrfToken();
   }
@@ -59,7 +97,6 @@ export class ApiClient {
     let url: string;
     let postData: Record<string, string>;
 
-    // 添加 csrf_token
     const requestData = {
       ...data,
       csrf_token: this.getCsrf(),
@@ -97,36 +134,38 @@ export class ApiClient {
     try {
       const response = await this.client.post<T>(url, new URLSearchParams(postData).toString(), {
         headers: {
-          Cookie: this.getCookieHeader(),
+          Cookie: this.getCookieHeader(endpoint),
         },
       });
 
-      // 检查网易云返回的业务错误码
+      this.collectCookies(response);
+
       const responseData = response.data as { code?: number; message?: string; msg?: string };
       if (responseData.code && responseData.code !== 200) {
-        throw new Error(responseData.message || responseData.msg || `API 错误: ${responseData.code}`);
+        const msg = responseData.message || responseData.msg || 'Unknown error';
+        throw new Error(`${msg} (code: ${responseData.code})`);
       }
 
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
+        if (error.response) this.collectCookies(error.response);
         if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-          throw new Error('网络连接失败，请检查网络');
+          throw new Error('Network connection failed');
         }
         if (error.response?.status === 401) {
-          throw new Error('认证失败，请重新登录');
+          throw new Error('Authentication failed, please re-login');
         }
         if (error.response?.status === 403) {
-          throw new Error('访问被拒绝，可能需要登录或 Cookie 已过期');
+          throw new Error('Access denied, login required or cookie expired');
         }
-        throw new Error(`请求失败: ${error.message}`);
+        throw new Error(`Request failed: ${error.message}`);
       }
       throw error;
     }
   }
 
   async download(url: string, destPath: string): Promise<void> {
-    // CDN 防盗链: 部分节点(m704/m804)会 403，使用备用节点(m801)重试
     const CDN_FALLBACKS = ['m801', 'm701'];
 
     const tryDownload = async (dlUrl: string): Promise<Readable> => {
@@ -145,7 +184,6 @@ export class ApiClient {
 
     let lastError: Error | null = null;
 
-    // 先尝试原始 URL
     try {
       const stream = await tryDownload(url);
       await pipeline(stream, fs.createWriteStream(destPath));
@@ -156,7 +194,7 @@ export class ApiClient {
       lastError = e as Error;
     }
 
-    // 403 时切换 CDN 节点重试
+    // Retry with CDN fallback on 403
     for (const fallback of CDN_FALLBACKS) {
       const altUrl = url.replace(/m\d+\.music\.126\.net/, `${fallback}.music.126.net`);
       try {
@@ -168,11 +206,10 @@ export class ApiClient {
       }
     }
 
-    throw lastError || new Error('下载失败');
+    throw lastError || new Error('Download failed');
   }
 }
 
-// 单例
 let clientInstance: ApiClient | null = null;
 
 export function getApiClient(): ApiClient {

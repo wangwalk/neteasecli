@@ -4,31 +4,32 @@ import { output, outputError } from '../output/json.js';
 import { ExitCode } from '../types/index.js';
 
 export function createAuthCommand(): Command {
-  const auth = new Command('auth').description('认证管理');
+  const auth = new Command('auth').description('Authentication');
 
   auth
     .command('login')
-    .description('从 Chrome 导入登录信息')
-    .option('--profile <name>', '指定 Chrome Profile 名称（默认使用 Default）')
+    .description('Import login cookies from Chrome')
+    .option('--profile <name>', 'Chrome profile name (default: Default)')
     .action(async (options) => {
       const authManager = getAuthManager();
 
       try {
         await authManager.importFromBrowser(options.profile);
         output({
-          message: '登录成功',
+          message: 'Login successful',
           authenticated: true,
+          method: 'chrome',
           profile: options.profile || 'Default',
         });
       } catch (error) {
-        outputError('AUTH_ERROR', error instanceof Error ? error.message : '登录失败');
+        outputError('AUTH_ERROR', error instanceof Error ? error.message : 'Login failed');
         process.exit(ExitCode.AUTH_ERROR);
       }
     });
 
   auth
     .command('check')
-    .description('检查登录状态')
+    .description('Check login status')
     .action(async () => {
       const authManager = getAuthManager();
 
@@ -39,28 +40,28 @@ export function createAuthCommand(): Command {
             valid: true,
             userId: result.userId,
             nickname: result.nickname,
-            message: `已登录: ${result.nickname} (${result.userId})`,
+            message: `Logged in: ${result.nickname} (${result.userId})`,
           });
         } else {
           output({
             valid: false,
             error: result.error,
-            message: result.error || '未登录',
+            message: result.error || 'Not logged in',
           });
         }
       } catch (error) {
-        outputError('AUTH_ERROR', error instanceof Error ? error.message : '检查失败');
+        outputError('AUTH_ERROR', error instanceof Error ? error.message : 'Check failed');
         process.exit(ExitCode.AUTH_ERROR);
       }
     });
 
   auth
     .command('logout')
-    .description('登出')
+    .description('Logout')
     .action(() => {
       const authManager = getAuthManager();
       authManager.logout();
-      output({ message: '已登出', authenticated: false });
+      output({ message: 'Logged out', authenticated: false });
     });
 
   return auth;

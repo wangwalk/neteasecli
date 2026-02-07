@@ -35,14 +35,6 @@ interface NeteaseUserPlaylistsResponse {
   }[];
 }
 
-interface NeteaseCreatePlaylistResponse {
-  code: number;
-  playlist: {
-    id: number;
-    name: string;
-  };
-}
-
 function transformTrack(track: {
   id: number;
   name: string;
@@ -97,7 +89,6 @@ export async function getPlaylistDetail(id: string): Promise<Playlist> {
 export async function getUserPlaylists(uid?: string): Promise<Playlist[]> {
   const client = getApiClient();
 
-  // 如果没有提供 uid，需要先获取当前用户 id
   let userId = uid;
   if (!userId) {
     const userInfo = await client.request<{ code: number; profile: { userId: number } }>(
@@ -127,48 +118,3 @@ export async function getUserPlaylists(uid?: string): Promise<Playlist[]> {
   }));
 }
 
-export async function createPlaylist(name: string, privacy: boolean = false): Promise<Playlist> {
-  const client = getApiClient();
-
-  const response = await client.request<NeteaseCreatePlaylistResponse>('/playlist/create', {
-    name,
-    privacy: privacy ? 10 : 0,
-  });
-
-  return {
-    id: String(response.playlist.id),
-    name: response.playlist.name,
-    trackCount: 0,
-  };
-}
-
-export async function addTracksToPlaylist(playlistId: string, trackIds: string[]): Promise<void> {
-  const client = getApiClient();
-
-  await client.request('/playlist/manipulate/tracks', {
-    op: 'add',
-    pid: playlistId,
-    trackIds: `[${trackIds.join(',')}]`,
-  });
-}
-
-export async function removeTracksFromPlaylist(
-  playlistId: string,
-  trackIds: string[]
-): Promise<void> {
-  const client = getApiClient();
-
-  await client.request('/playlist/manipulate/tracks', {
-    op: 'del',
-    pid: playlistId,
-    trackIds: `[${trackIds.join(',')}]`,
-  });
-}
-
-export async function deletePlaylist(id: string): Promise<void> {
-  const client = getApiClient();
-
-  await client.request('/playlist/delete', {
-    id,
-  });
-}

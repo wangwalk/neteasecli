@@ -7,11 +7,11 @@ import { output, outputError } from '../output/json.js';
 import { ExitCode } from '../types/index.js';
 
 export function createPlaylistCommand(): Command {
-  const playlist = new Command('playlist').description('歌单管理（只读）');
+  const playlist = new Command('playlist').description('Playlists');
 
   playlist
     .command('list')
-    .description('我的歌单')
+    .description('List my playlists')
     .action(async () => {
       try {
         const playlists = await getUserPlaylists();
@@ -25,16 +25,16 @@ export function createPlaylistCommand(): Command {
           total: playlists.length,
         });
       } catch (error) {
-        outputError('PLAYLIST_ERROR', error instanceof Error ? error.message : '获取歌单失败');
+        outputError('PLAYLIST_ERROR', error instanceof Error ? error.message : 'Failed');
         process.exit(ExitCode.NETWORK_ERROR);
       }
     });
 
   playlist
     .command('detail')
-    .description('歌单详情')
-    .argument('<id>', '歌单 ID')
-    .option('-l, --limit <number>', '显示歌曲数量', '50')
+    .description('Playlist details')
+    .argument('<id>', 'Playlist ID')
+    .option('-l, --limit <number>', 'Track count limit', '50')
     .action(async (id: string, options) => {
       try {
         const detail = await getPlaylistDetail(id);
@@ -56,7 +56,7 @@ export function createPlaylistCommand(): Command {
           })),
         });
       } catch (error) {
-        outputError('PLAYLIST_ERROR', error instanceof Error ? error.message : '获取歌单详情失败');
+        outputError('PLAYLIST_ERROR', error instanceof Error ? error.message : 'Failed');
         process.exit(ExitCode.NETWORK_ERROR);
       }
     });

@@ -1,58 +1,11 @@
-import * as fs from 'fs';
 import { saveCookies, loadCookies, clearCookies } from './storage.js';
-import type { CookieData, UserProfile } from '../types/index.js';
+import type { CookieData } from '../types/index.js';
 
 export class AuthManager {
   private cookies: CookieData | null = null;
 
   constructor() {
     this.cookies = loadCookies();
-  }
-
-  async importFromFile(filePath: string): Promise<void> {
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`文件不存在: ${filePath}`);
-    }
-
-    const content = fs.readFileSync(filePath, 'utf-8');
-    let parsed: unknown;
-
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      throw new Error('无效的 JSON 文件');
-    }
-
-    const cookies = this.parseCookies(parsed);
-
-    if (!cookies.MUSIC_U) {
-      throw new Error('Cookie 中缺少 MUSIC_U，请确保已登录网易云音乐');
-    }
-
-    this.cookies = cookies;
-    saveCookies(cookies);
-  }
-
-  private parseCookies(data: unknown): CookieData {
-    // 支持多种格式
-
-    // 格式1: Sweet Cookie 导出格式 (数组)
-    if (Array.isArray(data)) {
-      const cookies: CookieData = {};
-      for (const item of data) {
-        if (item && typeof item === 'object' && 'name' in item && 'value' in item) {
-          cookies[item.name as string] = item.value as string;
-        }
-      }
-      return cookies;
-    }
-
-    // 格式2: 简单 key-value 对象
-    if (typeof data === 'object' && data !== null) {
-      return data as CookieData;
-    }
-
-    throw new Error('不支持的 Cookie 格式');
   }
 
   async importFromBrowser(profile?: string): Promise<void> {
@@ -71,7 +24,7 @@ export class AuthManager {
     const { cookies, warnings } = await getCookies(options);
 
     if (warnings.length > 0) {
-      console.warn('⚠️  Cookie 提取警告:', warnings.join(', '));
+      console.warn('Warning:', warnings.join(', '));
     }
 
     const cookieData: CookieData = {};
@@ -81,10 +34,10 @@ export class AuthManager {
 
     if (!cookieData.MUSIC_U) {
       throw new Error(
-        '未能从 Chrome 中找到网易云音乐的登录信息\n' +
-          '请确保：\n' +
-          '1. 已在 Chrome 中登录 https://music.163.com\n' +
-          (profile ? `2. 使用的是正确的 Profile: ${profile}` : '2. 使用的是默认 Profile')
+        'Could not find Netease login cookies in Chrome.\n' +
+          'Please make sure:\n' +
+          '1. You are logged in at https://music.163.com in Chrome\n' +
+          (profile ? `2. Using the correct profile: ${profile}` : '2. Using the default profile')
       );
     }
 
@@ -94,11 +47,10 @@ export class AuthManager {
 
   async checkAuth(): Promise<{ valid: boolean; userId?: string; nickname?: string; error?: string }> {
     if (!this.isAuthenticated()) {
-      return { valid: false, error: '未登录' };
+      return { valid: false, error: 'Not logged in' };
     }
 
     try {
-      // 调用网易云 API 验证登录态
       const { getUserProfile } = await import('../api/user.js');
       const profile = await getUserProfile();
       return {
@@ -109,7 +61,7 @@ export class AuthManager {
     } catch (error) {
       return {
         valid: false,
-        error: error instanceof Error ? error.message : '登录态已失效',
+        error: error instanceof Error ? error.message : 'Session expired',
       };
     }
   }
@@ -134,24 +86,13 @@ export class AuthManager {
     return this.cookies?.__csrf || '';
   }
 
-  getMusicU(): string {
-    return this.cookies?.MUSIC_U || '';
-  }
-
   logout(): void {
     this.cookies = null;
     clearCookies();
   }
 
-  getStatus(): { authenticated: boolean; musicU?: string } {
-    return {
-      authenticated: this.isAuthenticated(),
-      musicU: this.cookies?.MUSIC_U ? `${this.cookies.MUSIC_U.slice(0, 10)}...` : undefined,
-    };
-  }
 }
 
-// 单例
 let authManagerInstance: AuthManager | null = null;
 
 export function getAuthManager(): AuthManager {

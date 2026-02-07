@@ -61,9 +61,7 @@ function transformTrack(track: {
 
 export async function getUserProfile(): Promise<UserProfile> {
   const client = getApiClient();
-
   const response = await client.request<NeteaseUserAccountResponse>('/nuser/account/get');
-
   return {
     id: String(response.profile.userId),
     nickname: response.profile.nickname,
@@ -73,20 +71,15 @@ export async function getUserProfile(): Promise<UserProfile> {
 
 export async function getLikedTrackIds(): Promise<string[]> {
   const client = getApiClient();
-
-  // 先获取用户 ID
   const userProfile = await getUserProfile();
-
   const response = await client.request<NeteaseLikelistResponse>('/song/like/get', {
     uid: userProfile.id,
   });
-
   return response.ids.map(String);
 }
 
 export async function likeTrack(id: string, like: boolean = true): Promise<void> {
   const client = getApiClient();
-
   await client.request('/like', {
     trackId: id,
     like,
@@ -95,12 +88,10 @@ export async function likeTrack(id: string, like: boolean = true): Promise<void>
 
 export async function getRecentTracks(limit: number = 100): Promise<Track[]> {
   const client = getApiClient();
-
   const response = await client.request<NeteaseRecentResponse>('/play/record', {
     uid: (await getUserProfile()).id,
     type: 0,
     limit,
   });
-
   return (response.allData || []).map((item) => transformTrack(item.song));
 }

@@ -35,7 +35,3 @@ export function outputError(code: string, message: string): void {
   console.log(prettyPrint ? JSON.stringify(response, null, 2) : JSON.stringify(response));
 }
 
-export function outputRaw<T>(data: T): void {
-  if (quietMode) return;
-  console.log(prettyPrint ? JSON.stringify(data, null, 2) : JSON.stringify(data));
-}

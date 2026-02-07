@@ -1,6 +1,5 @@
 import * as crypto from 'crypto';
 
-// 网易云音乐 API 加密相关常量
 const IV = '0102030405060708';
 const PRESET_KEY = '0CoJUm6Qyw8W8jud';
 const PUBLIC_KEY =
@@ -8,7 +7,6 @@ const PUBLIC_KEY =
 const EAPI_KEY = 'e82ckenh8dichen8';
 const LINUX_API_KEY = 'rFgB&h#%2?^eDg:Q';
 
-// 生成随机字符串
 function createSecretKey(size: number): string {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let key = '';
@@ -18,7 +16,6 @@ function createSecretKey(size: number): string {
   return key;
 }
 
-// AES-128-CBC 加密
 function aesEncrypt(text: string, key: string, iv: string = IV): string {
   const cipher = crypto.createCipheriv('aes-128-cbc', key, iv);
   let encrypted = cipher.update(text, 'utf8', 'base64');
@@ -26,12 +23,9 @@ function aesEncrypt(text: string, key: string, iv: string = IV): string {
   return encrypted;
 }
 
-// RSA 加密
 function rsaEncrypt(text: string, pubKey: string): string {
   const reversedText = text.split('').reverse().join('');
-  // RSA 1024 位密钥 = 128 字节
   const buffer = Buffer.alloc(128, 0);
-  // 将反转后的密钥从右侧（尾部）开始填充
   const textBuffer = Buffer.from(reversedText);
   textBuffer.copy(buffer, 128 - textBuffer.length);
 
@@ -45,12 +39,11 @@ function rsaEncrypt(text: string, pubKey: string): string {
   return encrypted.toString('hex');
 }
 
-// MD5 哈希
 function md5(text: string): string {
   return crypto.createHash('md5').update(text).digest('hex');
 }
 
-// 加密方式1: weapi (网页端)
+// weapi encryption (web client)
 export interface WeapiResult {
   params: string;
   encSecKey: string;
@@ -59,19 +52,13 @@ export interface WeapiResult {
 export function weapi(data: object): WeapiResult {
   const text = JSON.stringify(data);
   const secretKey = createSecretKey(16);
-
-  // 第一次 AES 加密
   const params1 = aesEncrypt(text, PRESET_KEY, IV);
-  // 第二次 AES 加密
   const params = aesEncrypt(params1, secretKey, IV);
-
-  // RSA 加密 secretKey
   const encSecKey = rsaEncrypt(secretKey, PUBLIC_KEY);
-
   return { params, encSecKey };
 }
 
-// 加密方式2: linuxapi (Linux 客户端)
+// linuxapi encryption (Linux client)
 export interface LinuxapiResult {
   eparams: string;
 }
@@ -84,7 +71,7 @@ export function linuxapi(data: object): LinuxapiResult {
   return { eparams };
 }
 
-// 加密方式3: eapi (手机端)
+// eapi encryption (mobile client)
 export interface EapiResult {
   params: string;
 }
@@ -102,10 +89,3 @@ export function eapi(url: string, data: object): EapiResult {
   return { params: encrypted };
 }
 
-// eapi 解密响应
-export function eapiDecrypt(encryptedData: string): string {
-  const decipher = crypto.createDecipheriv('aes-128-ecb', EAPI_KEY, '');
-  let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
-}
