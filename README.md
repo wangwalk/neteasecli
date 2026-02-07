@@ -122,6 +122,7 @@ neteasecli playlist detail <id>    # Playlist tracks / 歌单详情
 | `--profile <name>` | Account profile (default: "default") / 账号配置 |
 | `-v, --verbose` | Verbose output / 详细输出 |
 | `-d, --debug` | Debug output (implies --verbose) / 调试输出 |
+| `--timeout <seconds>` | Request timeout (default: 30) / 请求超时秒数 |
 
 ## Output Modes / 输出模式
 

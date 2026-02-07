@@ -35,13 +35,17 @@ export class ApiClient {
   constructor() {
     this.client = axios.create({
       baseURL: BASE_URL,
-      timeout: 30000,
+      timeout: requestTimeout,
       headers: {
         'User-Agent': USER_AGENT,
         'Content-Type': 'application/x-www-form-urlencoded',
         Referer: 'https://music.163.com',
       },
     });
+  }
+
+  updateTimeout(ms: number): void {
+    this.client.defaults.timeout = ms;
   }
 
   private collectCookies(response: AxiosResponse): void {
@@ -215,6 +219,15 @@ export class ApiClient {
     }
 
     throw lastError || new Error('Download failed');
+  }
+}
+
+let requestTimeout = 30000;
+
+export function setRequestTimeout(ms: number): void {
+  requestTimeout = ms;
+  if (clientInstance) {
+    clientInstance.updateTimeout(ms);
   }
 }
 

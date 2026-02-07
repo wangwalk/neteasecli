@@ -9,6 +9,7 @@ import { setOutputMode, setPrettyPrint, setQuietMode } from '../output/json.js';
 import { setNoColor } from '../output/color.js';
 import { setVerbose, setDebug } from '../output/logger.js';
 import { setProfile } from '../auth/storage.js';
+import { setRequestTimeout } from '../api/client.js';
 
 export function createProgram(): Command {
   const program = new Command();
@@ -25,6 +26,7 @@ export function createProgram(): Command {
     .option('--profile <name>', 'Account profile', 'default')
     .option('-v, --verbose', 'Verbose output')
     .option('-d, --debug', 'Debug output (implies --verbose)')
+    .option('--timeout <seconds>', 'Request timeout in seconds', '30')
     .hook('preAction', (thisCommand) => {
       const opts = thisCommand.opts();
       if (opts.profile && opts.profile !== 'default') {
@@ -37,6 +39,7 @@ export function createProgram(): Command {
       if (!opts.color) setNoColor(true);
       if (opts.verbose) setVerbose(true);
       if (opts.debug) setDebug(true);
+      if (opts.timeout) setRequestTimeout(Number(opts.timeout) * 1000);
     });
 
   program.addCommand(createAuthCommand());
