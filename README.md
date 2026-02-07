@@ -112,7 +112,7 @@ netease playlist detail <id>    # Playlist tracks / 歌单详情
 - Node.js >= 22
 - Chrome (for cookie import / 用于导入 Cookie)
 - [mpv](https://mpv.io/) (for playback / 用于播放)
-- macOS or Linux
+- macOS, Linux, or Windows
 
 ## License
 
