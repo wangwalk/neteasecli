@@ -165,7 +165,7 @@ Profiles are stored in `~/.config/neteasecli/profiles/<name>/`.
 
 ## Requirements / 环境要求
 
-- Node.js >= 22
+- Node.js >= 24
 - Chrome, Edge, Firefox, or Safari (for cookie import / 用于导入 Cookie)
 - [mpv](https://mpv.io/) (optional, for playback / 可选，用于播放)
 - macOS, Linux, or Windows
