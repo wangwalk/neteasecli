@@ -166,6 +166,39 @@ function outputHuman<T>(data: T): void {
     return;
   }
 
+  // Auth check result
+  if (d.credentials !== undefined && typeof d.credentials === 'object') {
+    const creds = d.credentials as Record<string, boolean>;
+    const warnings = (d.warnings as string[]) || [];
+    const profile = d.profile ? String(d.profile) : 'default';
+
+    console.log(`${bold('Credential check')} ${dim(`(profile: ${profile})`)}`);
+    console.log(dim('─'.repeat(40)));
+    for (const [name, found] of Object.entries(creds)) {
+      const icon = found ? green('✓') : red('✗');
+      const status = found ? 'found' : 'not found';
+      console.log(`${icon} ${bold(name)}: ${found ? green(status) : red(status)}`);
+    }
+    if (d.valid && d.nickname) {
+      console.log(`${green('✓')} ${bold('session')}: ${green('valid')} ${dim(`(${d.nickname})`)}`);
+    } else if (creds.MUSIC_U) {
+      console.log(`${red('✗')} ${bold('session')}: ${red('expired or invalid')}`);
+    }
+    if (warnings.length > 0) {
+      console.log(`\n${yellow('⚠')} ${bold('Warnings:')}`);
+      for (const w of warnings) {
+        console.log(`   ${dim('-')} ${w}`);
+      }
+    }
+    if (!d.valid) {
+      console.log(`\n${red('✗')} Missing credentials. Options:`);
+      console.log(`   1. Login to ${cyan('music.163.com')} in Chrome`);
+      console.log(`   2. Run ${cyan('neteasecli auth login')}`);
+      console.log(`   3. Use ${cyan('--profile <name>')} for a specific Chrome profile`);
+    }
+    return;
+  }
+
   // Message-based output (auth, player, etc.)
   if (d.message !== undefined) {
     const icon = green('✓');

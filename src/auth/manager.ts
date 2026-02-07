@@ -23,31 +23,68 @@ export class AuthManager {
 
     const { cookies, warnings } = await getCookies(options);
 
-    if (warnings.length > 0) {
-      console.warn('Warning:', warnings.join(', '));
-    }
-
     const cookieData: CookieData = {};
     for (const cookie of cookies) {
       cookieData[cookie.name] = cookie.value;
     }
 
     if (!cookieData.MUSIC_U) {
-      throw new Error(
-        'Could not find Netease login cookies in Chrome.\n' +
-          'Please make sure:\n' +
-          '1. You are logged in at https://music.163.com in Chrome\n' +
-          (profile ? `2. Using the correct profile: ${profile}` : '2. Using the default profile')
+      const parts = ['Could not find Netease login cookies in Chrome.'];
+      if (warnings.length > 0) {
+        parts.push('', 'Warnings:');
+        for (const w of warnings) {
+          parts.push(`  - ${w}`);
+        }
+      }
+      parts.push(
+        '',
+        'Options:',
+        '  1. Login to music.163.com in Chrome',
+        '  2. Run `neteasecli auth login`',
+        profile ? `  3. Check Chrome profile: ${profile}` : '  3. Use --profile <name> for a specific Chrome profile',
       );
+      throw new Error(parts.join('\n'));
+    }
+
+    if (warnings.length > 0) {
+      const { verbose } = await import('../output/logger.js');
+      for (const w of warnings) {
+        verbose(`Cookie import warning: ${w}`);
+      }
     }
 
     this.cookies = cookieData;
     saveCookies(cookieData);
   }
 
-  async checkAuth(): Promise<{ valid: boolean; userId?: string; nickname?: string; error?: string }> {
-    if (!this.isAuthenticated()) {
-      return { valid: false, error: 'Not logged in' };
+  async checkAuth(): Promise<{
+    valid: boolean;
+    userId?: string;
+    nickname?: string;
+    error?: string;
+    credentials: { MUSIC_U: boolean; __csrf: boolean };
+    warnings: string[];
+  }> {
+    const credentials = {
+      MUSIC_U: !!this.cookies?.MUSIC_U,
+      __csrf: !!this.cookies?.__csrf,
+    };
+    const warnings: string[] = [];
+
+    if (!this.cookies) {
+      warnings.push('No session file found. Run `neteasecli auth login` to import cookies from Chrome.');
+      return { valid: false, error: 'Not logged in', credentials, warnings };
+    }
+
+    if (!credentials.MUSIC_U) {
+      warnings.push('Missing MUSIC_U cookie — login session not found');
+    }
+    if (!credentials.__csrf) {
+      warnings.push('Missing __csrf cookie — some API calls may fail');
+    }
+
+    if (!credentials.MUSIC_U) {
+      return { valid: false, error: 'Missing credentials', credentials, warnings };
     }
 
     try {
@@ -57,12 +94,13 @@ export class AuthManager {
         valid: true,
         userId: profile.id,
         nickname: profile.nickname,
+        credentials,
+        warnings,
       };
     } catch (error) {
-      return {
-        valid: false,
-        error: error instanceof Error ? error.message : 'Session expired',
-      };
+      const msg = error instanceof Error ? error.message : 'Session expired';
+      warnings.push(`Session validation failed: ${msg}`);
+      return { valid: false, error: msg, credentials, warnings };
     }
   }
 

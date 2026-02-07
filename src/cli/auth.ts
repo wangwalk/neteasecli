@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { getAuthManager } from '../auth/manager.js';
 import { output, outputError } from '../output/json.js';
 import { ExitCode } from '../types/index.js';
+import { getProfile } from '../auth/storage.js';
 
 export function createAuthCommand(): Command {
   const auth = new Command('auth').description('Authentication');
@@ -35,20 +36,18 @@ export function createAuthCommand(): Command {
 
       try {
         const result = await authManager.checkAuth();
-        if (result.valid) {
-          output({
-            valid: true,
-            userId: result.userId,
-            nickname: result.nickname,
-            message: `Logged in: ${result.nickname} (${result.userId})`,
-          });
-        } else {
-          output({
-            valid: false,
-            error: result.error,
-            message: result.error || 'Not logged in',
-          });
-        }
+        output({
+          valid: result.valid,
+          userId: result.userId,
+          nickname: result.nickname,
+          profile: getProfile(),
+          credentials: result.credentials,
+          warnings: result.warnings,
+          error: result.error,
+          message: result.valid
+            ? `Logged in: ${result.nickname} (${result.userId})`
+            : result.error || 'Not logged in',
+        });
       } catch (error) {
         outputError('AUTH_ERROR', error instanceof Error ? error.message : 'Check failed');
         process.exit(ExitCode.AUTH_ERROR);
