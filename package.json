@@ -5,8 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "neteasecli": "./dist/index.js",
-    "netease": "./dist/index.js"
+    "neteasecli": "./dist/index.js"
   },
   "files": [
     "dist/**/*",
