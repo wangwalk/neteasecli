@@ -1,7 +1,9 @@
 import { spawn, type ChildProcess } from 'child_process';
 import * as net from 'net';
 
-const SOCKET_PATH = '/tmp/neteasecli-mpv.sock';
+const SOCKET_PATH = process.platform === 'win32'
+  ? '\\\\.\\pipe\\neteasecli-mpv'
+  : '/tmp/neteasecli-mpv.sock';
 
 interface MpvResponse {
   data?: unknown;
