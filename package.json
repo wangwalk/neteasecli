@@ -27,11 +27,19 @@
   },
   "keywords": [
     "netease",
+    "netease-cloud-music",
+    "ncm",
     "music",
+    "music-cli",
     "cli",
-    "streaming"
+    "terminal",
+    "mpv",
+    "streaming",
+    "player",
+    "163music",
+    "wangyiyun"
   ],
-  "author": "",
+  "author": "wangwalk",
   "license": "MIT",
   "repository": {
     "type": "git",
