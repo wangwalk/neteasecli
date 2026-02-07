@@ -30,11 +30,17 @@ Netease Cloud Music has no public API. The unofficial API endpoints require encr
 ## Install / 安装
 
 ```bash
-# Run without installing / 免安装运行
-npx neteasecli search track "Jay Chou"
+# npm
+npx neteasecli search track "Jay Chou"    # Run without installing / 免安装运行
+npm install -g neteasecli                   # Install globally / 全局安装
 
-# Install globally / 全局安装
-npm install -g neteasecli
+# pnpm
+pnpm dlx neteasecli search track "Jay Chou"
+pnpm add -g neteasecli
+
+# bun
+bunx neteasecli search track "Jay Chou"
+bun add -g neteasecli
 ```
 
 ## Quick Start / 快速开始
