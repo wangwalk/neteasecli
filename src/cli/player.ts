@@ -9,8 +9,8 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-function requireRunning(): void {
-  if (!mpvPlayer.isRunning()) {
+async function requireRunning(): Promise<void> {
+  if (!(await mpvPlayer.isRunning())) {
     outputError('PLAYER_ERROR', 'Nothing is playing');
     process.exit(ExitCode.GENERAL_ERROR);
   }
@@ -53,7 +53,7 @@ export function createPlayerCommand(): Command {
     .description('Toggle pause/resume')
     .action(async () => {
       try {
-        requireRunning();
+        await requireRunning();
         await mpvPlayer.pause();
         const status = await mpvPlayer.getStatus();
         output({
@@ -85,7 +85,7 @@ export function createPlayerCommand(): Command {
     .option('--absolute', 'Seek to absolute position')
     .action(async (seconds: string, opts: { absolute?: boolean }) => {
       try {
-        requireRunning();
+        await requireRunning();
         const secs = Number(seconds);
         if (isNaN(secs)) {
           outputError('PLAYER_ERROR', 'Invalid seconds value');
@@ -112,7 +112,7 @@ export function createPlayerCommand(): Command {
     .description('Get or set volume (0-150)')
     .action(async (level?: string) => {
       try {
-        requireRunning();
+        await requireRunning();
         if (level !== undefined) {
           const vol = Number(level);
           if (isNaN(vol)) {
@@ -137,7 +137,7 @@ export function createPlayerCommand(): Command {
     .description('Toggle or set repeat mode (off/on)')
     .action(async (mode?: string) => {
       try {
-        requireRunning();
+        await requireRunning();
         if (mode !== undefined) {
           await mpvPlayer.setLoop(mode === 'on' ? 'inf' : 'no');
           output({ repeat: mode === 'on', message: `Repeat: ${mode}` });

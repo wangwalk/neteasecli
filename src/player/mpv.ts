@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from 'child_process';
+import { spawn } from 'child_process';
 import * as net from 'net';
+import * as fs from 'fs';
 
 const SOCKET_PATH = process.platform === 'win32'
   ? '\\\\.\\pipe\\neteasecli-mpv'
@@ -12,16 +13,19 @@ interface MpvResponse {
 }
 
 class MpvPlayer {
-  private process: ChildProcess | null = null;
-  private currentTitle: string | undefined;
   private requestId = 0;
 
   async play(url: string, title?: string): Promise<void> {
-    await this.stop();
-    this.currentTitle = title;
+    // Stop any existing instance
+    await this.stop().catch(() => {});
+
+    // Clean up stale socket file
+    if (process.platform !== 'win32' && fs.existsSync(SOCKET_PATH)) {
+      fs.unlinkSync(SOCKET_PATH);
+    }
 
     return new Promise((resolve, reject) => {
-      this.process = spawn('mpv', [
+      const proc = spawn('mpv', [
         '--no-video',
         `--input-ipc-server=${SOCKET_PATH}`,
         `--title=${title || 'neteasecli'}`,
@@ -31,24 +35,31 @@ class MpvPlayer {
         detached: true,
       });
 
-      this.process.unref();
+      proc.unref();
 
-      this.process.on('error', (err) => {
-        this.process = null;
+      proc.on('error', (err) => {
         reject(new Error(`Failed to start mpv: ${err.message}`));
       });
 
-      setTimeout(() => {
-        if (this.process && !this.process.killed) {
+      // Wait for socket to become available
+      let attempts = 0;
+      const waitForSocket = () => {
+        attempts++;
+        const sock = net.createConnection(SOCKET_PATH);
+        sock.on('connect', () => {
+          sock.destroy();
           resolve();
-        } else {
-          reject(new Error('mpv process exited unexpectedly'));
-        }
-      }, 500);
-
-      this.process.on('exit', () => {
-        this.process = null;
-      });
+        });
+        sock.on('error', () => {
+          sock.destroy();
+          if (attempts < 10) {
+            setTimeout(waitForSocket, 200);
+          } else {
+            reject(new Error('mpv started but IPC socket not available'));
+          }
+        });
+      };
+      setTimeout(waitForSocket, 300);
     });
   }
 
@@ -70,7 +81,6 @@ class MpvPlayer {
   }
 
   async setLoop(mode: 'no' | 'inf' | 'force'): Promise<void> {
-    // 'no' = no loop, 'inf' = loop current file, 'force' = same but force
     await this.setProperty('loop-file', mode);
   }
 
@@ -80,16 +90,10 @@ class MpvPlayer {
   }
 
   async stop(): Promise<void> {
-    if (this.process) {
-      try {
-        await this.sendCommand(['quit']);
-      } catch {
-        if (this.process && !this.process.killed) {
-          this.process.kill();
-        }
-      }
-      this.process = null;
-      this.currentTitle = undefined;
+    try {
+      await this.sendCommand(['quit']);
+    } catch {
+      // mpv not running, ignore
     }
   }
 
@@ -102,21 +106,18 @@ class MpvPlayer {
     volume: number;
     loop: string;
   }> {
-    if (!this.isRunning()) {
-      return { position: 0, duration: 0, paused: false, playing: false, volume: 100, loop: 'no' };
-    }
-
     try {
-      const [position, duration, paused, volume, loop] = await Promise.all([
+      const [position, duration, paused, volume, loop, title] = await Promise.all([
         this.getProperty('time-pos').catch(() => 0),
         this.getProperty('duration').catch(() => 0),
         this.getProperty('pause').catch(() => false),
         this.getProperty('volume').catch(() => 100),
         this.getProperty('loop-file').catch(() => 'no'),
+        this.getProperty('media-title').catch(() => undefined),
       ]);
 
       return {
-        title: this.currentTitle,
+        title: title ? String(title) : undefined,
         position: Number(position) || 0,
         duration: Number(duration) || 0,
         paused: Boolean(paused),
@@ -125,12 +126,17 @@ class MpvPlayer {
         loop: String(loop),
       };
     } catch {
-      return { title: this.currentTitle, position: 0, duration: 0, paused: false, playing: false, volume: 100, loop: 'no' };
+      return { position: 0, duration: 0, paused: false, playing: false, volume: 100, loop: 'no' };
     }
   }
 
-  isRunning(): boolean {
-    return this.process !== null && !this.process.killed;
+  async isRunning(): Promise<boolean> {
+    try {
+      await this.getProperty('pid');
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private getProperty(name: string): Promise<unknown> {
