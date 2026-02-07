@@ -11,7 +11,7 @@ Search, play, download, and manage your library — all from the terminal with s
 - Track info, streaming URLs, lyrics, download
 - Library management (liked tracks, recent history)
 - Playlist browsing
-- Browser cookie import from Chrome, Edge, Firefox, Safari via [sweet-cookie](https://github.com/nicolo-ribaudo/sweet-cookie)
+- Browser cookie import from Chrome, Edge, Firefox, Safari via [sweet-cookie](https://github.com/steipete/sweet-cookie)
 - Multi-profile support for multiple accounts
 - Three output modes: colorized human-readable, JSON, plain text
 - Debug/verbose logging (`-v`, `-d`)
@@ -46,7 +46,7 @@ bun add -g neteasecli
 ## Quick Start / 快速开始
 
 ```bash
-neteasecli auth login                    # Import cookies from Chrome
+neteasecli auth login                    # Import cookies from browser
 neteasecli search track "Sunny Day"      # Search
 neteasecli track play 185868             # Play (requires mpv)
 neteasecli player pause                  # Pause/resume
