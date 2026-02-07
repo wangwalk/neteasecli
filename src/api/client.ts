@@ -84,14 +84,6 @@ export class ApiClient {
     return parts.join('; ');
   }
 
-  private getCsrf(): string {
-    if (this.sessionCookies['__csrf']) {
-      return this.sessionCookies['__csrf'];
-    }
-    const authManager = getAuthManager();
-    return authManager.getCsrfToken();
-  }
-
   async request<T>(
     endpoint: string,
     data: object = {},
@@ -102,10 +94,7 @@ export class ApiClient {
     let url: string;
     let postData: Record<string, string>;
 
-    const requestData = {
-      ...data,
-      csrf_token: this.getCsrf(),
-    };
+    const requestData = { ...data };
 
     switch (cryptoType) {
       case 'weapi': {
@@ -176,49 +165,18 @@ export class ApiClient {
   }
 
   async download(url: string, destPath: string): Promise<void> {
-    const CDN_FALLBACKS = ['m801', 'm701'];
-
-    const tryDownload = async (dlUrl: string): Promise<Readable> => {
-      const response = await axios.get<Readable>(dlUrl, {
-        responseType: 'stream',
-        timeout: 120000,
-        httpAgent,
-        httpsAgent,
-        headers: {
-          'User-Agent': USER_AGENT,
-          Referer: 'https://music.163.com/',
-        },
-      });
-      return response.data;
-    };
-
-    let lastError: Error | null = null;
-
     verbose(`Downloading ${url}`);
-    try {
-      const stream = await tryDownload(url);
-      await pipeline(stream, fs.createWriteStream(destPath));
-      return;
-    } catch (e) {
-      const isAntiHotlink = e instanceof AxiosError && e.response?.status === 403;
-      if (!isAntiHotlink) throw e;
-      debug('Got 403, trying CDN fallback');
-      lastError = e as Error;
-    }
-
-    // Retry with CDN fallback on 403
-    for (const fallback of CDN_FALLBACKS) {
-      const altUrl = url.replace(/m\d+\.music\.126\.net/, `${fallback}.music.126.net`);
-      try {
-        const stream = await tryDownload(altUrl);
-        await pipeline(stream, fs.createWriteStream(destPath));
-        return;
-      } catch (e) {
-        lastError = e as Error;
-      }
-    }
-
-    throw lastError || new Error('Download failed');
+    const response = await axios.get<Readable>(url, {
+      responseType: 'stream',
+      timeout: 120000,
+      httpAgent,
+      httpsAgent,
+      headers: {
+        'User-Agent': USER_AGENT,
+        Referer: 'https://music.163.com/',
+      },
+    });
+    await pipeline(response.data, fs.createWriteStream(destPath));
   }
 }
 

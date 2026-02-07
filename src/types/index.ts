@@ -69,8 +69,6 @@ export interface UserProfile {
 
 export interface CookieData {
   MUSIC_U?: string;
-  __csrf?: string;
-  NMTID?: string;
   [key: string]: string | undefined;
 }
 

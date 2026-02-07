@@ -14,7 +14,7 @@ export class AuthManager {
 
     const options: any = {
       url: 'https://music.163.com/',
-      names: ['MUSIC_U', '__csrf'],
+      names: ['MUSIC_U'],
     };
 
     if (profile) {
@@ -67,12 +67,11 @@ export class AuthManager {
     userId?: string;
     nickname?: string;
     error?: string;
-    credentials: { MUSIC_U: boolean; __csrf: boolean };
+    credentials: { MUSIC_U: boolean };
     warnings: string[];
   }> {
     const credentials = {
       MUSIC_U: !!this.cookies?.MUSIC_U,
-      __csrf: !!this.cookies?.__csrf,
     };
     const warnings: string[] = [];
 
@@ -83,12 +82,6 @@ export class AuthManager {
 
     if (!credentials.MUSIC_U) {
       warnings.push('Missing MUSIC_U cookie — login session not found');
-    }
-    if (!credentials.__csrf) {
-      warnings.push('Missing __csrf cookie — some API calls may fail');
-    }
-
-    if (!credentials.MUSIC_U) {
       return { valid: false, error: 'Missing credentials', credentials, warnings };
     }
 
@@ -123,10 +116,6 @@ export class AuthManager {
       .filter(([, v]) => v !== undefined)
       .map(([k, v]) => `${k}=${v}`)
       .join('; ');
-  }
-
-  getCsrfToken(): string {
-    return this.cookies?.__csrf || '';
   }
 
   getSource(): string | undefined {
