@@ -118,7 +118,9 @@ function outputHuman<T>(data: T): void {
       const t = tracks[i];
       const artist = t.artist || formatArtists(t.artists);
       const dur = t.duration ? `  ${dim(formatDuration(Number(t.duration)))}` : '';
-      console.log(`  ${dim(String(i + 1).padStart(2, ' '))}  ${bold(String(t.name))} ${dim('-')} ${cyan(String(artist))}${dur}`);
+      console.log(
+        `  ${dim(String(i + 1).padStart(2, ' '))}  ${bold(String(t.name))} ${dim('-')} ${cyan(String(artist))}${dur}`,
+      );
     }
     const total = d.total !== undefined ? Number(d.total) : tracks.length;
     const showing = d.showing !== undefined ? Number(d.showing) : tracks.length;
@@ -133,7 +135,9 @@ function outputHuman<T>(data: T): void {
     const pls = d.playlists as Record<string, unknown>[];
     for (let i = 0; i < pls.length; i++) {
       const p = pls[i];
-      console.log(`  ${dim(String(i + 1).padStart(2, ' '))}  ${bold(String(p.name))} ${dim(`(${p.trackCount} tracks)`)}`);
+      console.log(
+        `  ${dim(String(i + 1).padStart(2, ' '))}  ${bold(String(p.name))} ${dim(`(${p.trackCount} tracks)`)}`,
+      );
     }
     return;
   }
@@ -154,7 +158,9 @@ function outputHuman<T>(data: T): void {
     console.log(`  ${dim('Artist:')}  ${cyan(formatArtists(d.artists))}`);
     const album = d.album as Record<string, unknown>;
     console.log(`  ${dim('Album:')}   ${String(album.name)}`);
-    console.log(`  ${dim('Duration:')} ${d.durationFormatted || formatDuration(Number(d.duration))}`);
+    console.log(
+      `  ${dim('Duration:')} ${d.durationFormatted || formatDuration(Number(d.duration))}`,
+    );
     if (d.uri) console.log(`  ${dim('URI:')}      ${String(d.uri)}`);
     return;
   }

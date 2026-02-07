@@ -34,7 +34,7 @@ function rsaEncrypt(text: string, pubKey: string): string {
       key: pubKey,
       padding: crypto.constants.RSA_NO_PADDING,
     },
-    buffer
+    buffer,
   );
   return encrypted.toString('hex');
 }
@@ -88,4 +88,3 @@ export function eapi(url: string, data: object): EapiResult {
 
   return { params: encrypted };
 }
-

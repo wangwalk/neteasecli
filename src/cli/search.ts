@@ -14,7 +14,12 @@ export function createSearchCommand(): Command {
       .option('-o, --offset <number>', 'Offset', '0')
       .action(async (keyword: string, options) => {
         try {
-          const result = await search(keyword, type, parseInt(options.limit), parseInt(options.offset));
+          const result = await search(
+            keyword,
+            type,
+            parseInt(options.limit),
+            parseInt(options.offset),
+          );
           output(result);
         } catch (error) {
           outputError('SEARCH_ERROR', error instanceof Error ? error.message : 'Search failed');

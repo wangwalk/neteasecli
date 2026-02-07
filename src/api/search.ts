@@ -100,7 +100,7 @@ export async function search(
   keyword: string,
   type: SearchType = 'track',
   limit: number = 20,
-  offset: number = 0
+  offset: number = 0,
 ): Promise<SearchResult> {
   const client = getApiClient();
 

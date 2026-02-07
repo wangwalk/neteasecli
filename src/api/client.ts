@@ -63,11 +63,7 @@ export class ApiClient {
     const authManager = getAuthManager();
     const userCookies = authManager.getCookieString();
 
-    const parts: string[] = [
-      'os=pc',
-      `sDeviceId=${this.sDeviceId}`,
-      '__remember_me=true',
-    ];
+    const parts: string[] = ['os=pc', `sDeviceId=${this.sDeviceId}`, '__remember_me=true'];
 
     if (endpoint && endpoint.includes('login')) {
       parts.push(`NMTID=${this.nmtid}`);
@@ -84,11 +80,7 @@ export class ApiClient {
     return parts.join('; ');
   }
 
-  async request<T>(
-    endpoint: string,
-    data: object = {},
-    options: RequestOptions = {}
-  ): Promise<T> {
+  async request<T>(endpoint: string, data: object = {}, options: RequestOptions = {}): Promise<T> {
     const { crypto: cryptoType = 'weapi' } = options;
 
     let url: string;

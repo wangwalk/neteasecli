@@ -76,7 +76,9 @@ export class AuthManager {
     const warnings: string[] = [];
 
     if (!this.cookies) {
-      warnings.push('No session file found. Run `neteasecli auth login` to import cookies from your browser.');
+      warnings.push(
+        'No session file found. Run `neteasecli auth login` to import cookies from your browser.',
+      );
       return { valid: false, error: 'Not logged in', credentials, warnings };
     }
 
@@ -126,7 +128,6 @@ export class AuthManager {
     this.cookies = null;
     clearCookies();
   }
-
 }
 
 let authManagerInstance: AuthManager | null = null;

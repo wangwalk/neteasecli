@@ -2,9 +2,8 @@ import { spawn } from 'child_process';
 import * as net from 'net';
 import * as fs from 'fs';
 
-const SOCKET_PATH = process.platform === 'win32'
-  ? '\\\\.\\pipe\\neteasecli-mpv'
-  : '/tmp/neteasecli-mpv.sock';
+const SOCKET_PATH =
+  process.platform === 'win32' ? '\\\\.\\pipe\\neteasecli-mpv' : '/tmp/neteasecli-mpv.sock';
 
 interface MpvResponse {
   data?: unknown;
@@ -25,15 +24,19 @@ class MpvPlayer {
     }
 
     return new Promise((resolve, reject) => {
-      const proc = spawn('mpv', [
-        '--no-video',
-        `--input-ipc-server=${SOCKET_PATH}`,
-        `--title=${title || 'neteasecli'}`,
-        url,
-      ], {
-        stdio: 'ignore',
-        detached: true,
-      });
+      const proc = spawn(
+        'mpv',
+        [
+          '--no-video',
+          `--input-ipc-server=${SOCKET_PATH}`,
+          `--title=${title || 'neteasecli'}`,
+          url,
+        ],
+        {
+          stdio: 'ignore',
+          detached: true,
+        },
+      );
 
       proc.unref();
 

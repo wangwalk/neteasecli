@@ -1,8 +1,5 @@
 import { Command } from 'commander';
-import {
-  getUserPlaylists,
-  getPlaylistDetail,
-} from '../api/playlist.js';
+import { getUserPlaylists, getPlaylistDetail } from '../api/playlist.js';
 import { output, outputError } from '../output/json.js';
 import { ExitCode } from '../types/index.js';
 

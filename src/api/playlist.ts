@@ -92,7 +92,7 @@ export async function getUserPlaylists(uid?: string): Promise<Playlist[]> {
   let userId = uid;
   if (!userId) {
     const userInfo = await client.request<{ code: number; profile: { userId: number } }>(
-      '/nuser/account/get'
+      '/nuser/account/get',
     );
     userId = String(userInfo.profile.userId);
   }
@@ -117,4 +117,3 @@ export async function getUserPlaylists(uid?: string): Promise<Playlist[]> {
       : undefined,
   }));
 }
-
