@@ -12,6 +12,8 @@ npx neteasecli search track "Jay Chou"
 
 # Install globally / 全局安装
 npm install -g neteasecli
+# Both `netease` and `neteasecli` work as commands
+# 安装后 `netease` 和 `neteasecli` 均可使用
 ```
 
 ## Quick Start / 快速开始
