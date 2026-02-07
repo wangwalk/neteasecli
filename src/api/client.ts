@@ -7,6 +7,7 @@ import * as http from 'http';
 import * as https from 'https';
 import { pipeline } from 'stream/promises';
 import type { Readable } from 'stream';
+import { verbose, debug } from '../output/logger.js';
 
 // Force IPv4 to avoid IPv6 CDN hotlink protection issues
 const httpAgent = new http.Agent({ family: 4 });
@@ -131,6 +132,9 @@ export class ApiClient {
       }
     }
 
+    verbose(`${cryptoType.toUpperCase()} ${endpoint}`);
+    debug(`POST ${url}`);
+
     try {
       const response = await this.client.post<T>(url, new URLSearchParams(postData).toString(), {
         headers: {
@@ -141,6 +145,7 @@ export class ApiClient {
       this.collectCookies(response);
 
       const responseData = response.data as { code?: number; message?: string; msg?: string };
+      debug(`Response code: ${responseData.code ?? 200}`);
       if (responseData.code && responseData.code !== 200) {
         const msg = responseData.message || responseData.msg || 'Unknown error';
         throw new Error(`${msg} (code: ${responseData.code})`);
@@ -150,6 +155,7 @@ export class ApiClient {
     } catch (error) {
       if (error instanceof AxiosError) {
         if (error.response) this.collectCookies(error.response);
+        debug(`HTTP error: ${error.response?.status ?? error.code}`);
         if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
           throw new Error('Network connection failed');
         }
@@ -184,6 +190,7 @@ export class ApiClient {
 
     let lastError: Error | null = null;
 
+    verbose(`Downloading ${url}`);
     try {
       const stream = await tryDownload(url);
       await pipeline(stream, fs.createWriteStream(destPath));
@@ -191,6 +198,7 @@ export class ApiClient {
     } catch (e) {
       const isAntiHotlink = e instanceof AxiosError && e.response?.status === 403;
       if (!isAntiHotlink) throw e;
+      debug('Got 403, trying CDN fallback');
       lastError = e as Error;
     }
 

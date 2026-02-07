@@ -12,7 +12,9 @@ Search, play, download, and manage your library — all from the terminal with s
 - Library management (liked tracks, recent history)
 - Playlist browsing
 - Browser cookie import via [sweet-cookie](https://github.com/nicolo-ribaudo/sweet-cookie) (no login API needed)
-- JSON output with `--pretty` and `--quiet` modes
+- Multi-profile support for multiple accounts
+- Three output modes: colorized human-readable, JSON, plain text
+- Debug/verbose logging (`-v`, `-d`)
 - Cross-platform: macOS, Linux, Windows
 
 ## Why Cookies?
@@ -106,22 +108,48 @@ neteasecli playlist detail <id>    # Playlist tracks / 歌单详情
 
 ## Global Options / 全局选项
 
-- `--pretty` Pretty-print JSON / 格式化输出
-- `--quiet` Suppress output / 静默模式
+| Flag | Description |
+|------|-------------|
+| `--json` | Force JSON output (default when piped) / 强制 JSON 输出 |
+| `--plain` | Plain text output (tab-separated) / 纯文本输出 |
+| `--pretty` | Pretty-print JSON / 格式化 JSON |
+| `--quiet` | Suppress output / 静默模式 |
+| `--no-color` | Disable colors / 禁用颜色 |
+| `--profile <name>` | Account profile (default: "default") / 账号配置 |
+| `-v, --verbose` | Verbose output / 详细输出 |
+| `-d, --debug` | Debug output (implies --verbose) / 调试输出 |
 
-## Output / 输出
+## Output Modes / 输出模式
 
-All commands return structured JSON:
+| Mode | When | Description |
+|------|------|-------------|
+| Human | TTY (default) | Colorized, readable / 彩色可读 |
+| JSON | Piped or `--json` | Structured `{ success, data, error }` / 结构化 JSON |
+| Plain | `--plain` | Tab-separated, scriptable / 制表符分隔 |
 
-```jsonc
-// Success
-{ "success": true, "data": { ... } }
+```bash
+# Colorized output in terminal / 终端彩色输出
+neteasecli search track "Jay Chou"
 
-// Error
-{ "success": false, "error": { "code": "AUTH_ERROR", "message": "..." } }
+# JSON for scripting / JSON 用于脚本
+neteasecli --json search track "Jay Chou"
+neteasecli search track "Jay Chou" | jq '.data.tracks[0]'
+
+# Plain text for cut/awk / 纯文本用于文本处理
+neteasecli --plain search track "Jay Chou" | cut -f1,2
 ```
 
 Exit codes: `0` success, `1` general error, `2` auth error, `3` network error.
+
+## Multi-Profile / 多账号
+
+```bash
+neteasecli --profile work auth login    # Login with "work" profile
+neteasecli --profile work library liked  # Use "work" profile
+neteasecli auth login                    # Default profile
+```
+
+Profiles are stored in `~/.config/neteasecli/profiles/<name>/`.
 
 ## Requirements / 环境要求
 

@@ -101,3 +101,7 @@ export function getAuthManager(): AuthManager {
   }
   return authManagerInstance;
 }
+
+export function resetAuthManager(): void {
+  authManagerInstance = null;
+}
