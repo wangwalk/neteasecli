@@ -40,3 +40,27 @@ jobs:
 
       - name: Smoke test
         run: node dist/index.js --help
+
+  integration:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Public tests (no auth)
+        run: npm test
+
+      - name: Auth tests
+        if: env.MUSIC_U != ''
+        env:
+          MUSIC_U: ${{ secrets.MUSIC_U }}
+          CI: true
+        run: npm test

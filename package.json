@@ -23,6 +23,7 @@
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
+    "test": "node test/integration.mjs",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
